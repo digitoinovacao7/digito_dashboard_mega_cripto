@@ -1,21 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --color-brand-bg: #0F172A;
-  --color-brand-pix: #22C55E;
-  --color-brand-web3: #8B5CF6;
-  --color-brand-accent: #F59E0B;
+:root {
+  /* Cores Primárias (Marca) */
+  --color-bg-base: #1A103C;
+  --color-bg-surface: #241842;
+  --color-primary-accent: #8B5CF6;
+
+  /* Cores de Destaque (Ação) */
+  --color-accent-gold: #FFB800;
+  --color-cta-primary: #34D399;
+
+  /* Cores Neutras (UI e Texto) */
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-disabled: #6B7280;
+  --color-border-subtle: #374151;
   
+  /* Cores de Feedback (Status) */
+  --color-feedback-success: #4ADE80;
+  --color-feedback-error: #F87171;
+  --color-feedback-warning: #FBBF24;
+
   --font-body: 'Inter', system-ui, sans-serif;
   --font-heading: 'Sora', system-ui, sans-serif;
-}
 
-:root {
   font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
   color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-base);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -26,9 +42,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  @apply bg-brand-bg text-slate-50;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
+  color: var(--color-text-primary);
 }
+
+p {
+  color: var(--color-text-secondary);
+}
+
