@@ -62,7 +62,7 @@ export const getAdminStats = async (): Promise<AdminStats> => {
   }), 800));
 };
 
-export const getUserStats = async (email: string): Promise<UserStats> => {
+export const getUserStats = async (_email: string): Promise<UserStats> => {
    // Simulating an Axios call to /user/stats?email=
    return new Promise((resolve) => setTimeout(() => resolve({
     pubKey: "DxL9cE7yA2B5mCqP...8uF2",
