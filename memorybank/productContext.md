@@ -8,7 +8,7 @@ Criar um ecossistema de loteria Web3 auditável onde os usuários podem apostar 
 1. **Onboarding (User Registration)**:
    - **Login Social (OAuth)**: Autenticação via Google usando Web3Auth ou Privy.
    - **Geração de Wallet Oculta**: O sistema gera uma carteira na rede Solana invisível para o usuário, mas publicamente vinculada ao seu login.
-   - **Cadastro de Pix**: O usuário cadastra sua chave PIX com nome, cpf/telefone, e ela é associada ao seu Pubkey no backend ou Smart Contract para o recebimento de prêmios.
+   - **Armazenamento Seguro de Dados de Pagamento**: Após o primeiro login, o usuário informa seus dados para recebimento de prêmios (Nome Completo, CPF/CNPJ, Chave PIX). Esses dados são enviados para o backend e armazenados em um documento seguro na coleção `users` do Google Cloud Firestore. A blockchain armazena apenas a `publicKey` do usuário, garantindo total privacidade. O objeto `paymentProfile`, contendo os dados sensíveis, só é acessível pelo servidor. Em caso de premiação, o backend utiliza a `publicKey` do vencedor para consultar seu `paymentProfile` e realizar a transferência PIX de forma segura e automatizada.
 
 2. **Betting Mechanics (Módulo de Aposta)**:
    - **Escolha dos Números**: Frontend provê um volante digital interativo (1-25). O usuário seleciona 15 números.
