@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+
+
 :root {
   /* Cores Primárias (Marca) */
   --color-bg-base: #1A103C;
@@ -51,5 +56,21 @@ h1, h2, h3, h4, h5, h6 {
 
 p {
   color: var(--color-text-secondary);
+}
+
+.shadow-error {
+  box-shadow: 0 0 15px var(--color-feedback-error);
+}
+
+.shadow-primary-accent {
+  box-shadow: 0 0 30px var(--color-primary-accent);
+}
+
+.shadow-success {
+  box-shadow: 0 0 30px var(--color-feedback-success);
+}
+
+.shadow-cta-primary {
+  box-shadow: 0 0 20px var(--color-cta-primary);
 }
 

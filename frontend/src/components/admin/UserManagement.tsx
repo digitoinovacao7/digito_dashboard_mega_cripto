@@ -7,11 +7,11 @@ const users = [
 
 export default function UserManagement() {
   return (
-    <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-lg">
+    <div className="bg-bg-surface border border-border-subtle p-6 rounded-xl shadow-lg">
       <h2 className="text-xl font-bold flex items-center gap-2 mb-4"><Users /> Gerenciamento de Usuários</h2>
       
-      <div className="flex items-center gap-2 mb-4 bg-slate-900 p-2 rounded-lg">
-        <Search className="text-slate-500" />
+      <div className="flex items-center gap-2 mb-4 bg-bg-surface p-2 rounded-lg">
+        <Search className="text-text-disabled" />
         <input 
           type="text" 
           placeholder="Buscar por nome, e-mail ou CPF..."
@@ -21,7 +21,7 @@ export default function UserManagement() {
 
       <table className="w-full text-left">
         <thead>
-          <tr className="border-b border-slate-700">
+          <tr className="border-b border-border-subtle">
             <th className="p-2">ID</th>
             <th className="p-2">Nome</th>
             <th className="p-2">Email</th>
@@ -30,7 +30,7 @@ export default function UserManagement() {
         </thead>
         <tbody>
           {users.map(user => (
-            <tr key={user.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+            <tr key={user.id} className="border-b border-border-subtle hover:bg-bg-surface/50">
               <td className="p-2">{user.id}</td>
               <td className="p-2">{user.name}</td>
               <td className="p-2">{user.email}</td>
