@@ -27,6 +27,15 @@ export const startBet = async (bets: number[][], userPubKey: string): Promise<Pa
 };
 
 // Interfaces for Dynamic Data
+export interface CryptoPrice {
+    id: string;
+    symbol: string;
+    name: string;
+    image: string;
+    price_brl: number;
+    change_24h: number;
+}
+
 export interface AdminStats {
   volumeBRL: number;
   totalTickets: number;
@@ -48,6 +57,16 @@ export interface UserStats {
   pubKey: string;
   tickets: UserTicket[];
 }
+
+export const getPrices = async (): Promise<CryptoPrice[]> => {
+  try {
+    const response = await axios.get(`${API_URL}/prices`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar preços:', error);
+    throw error;
+  }
+};
 
 // TODO: Replace with Real Backend Fetch once endpoints are ready in Rust
 export const getAdminStats = async (): Promise<AdminStats> => {

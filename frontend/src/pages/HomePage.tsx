@@ -1,9 +1,11 @@
 import { ArrowRight, CheckCircle2, Trophy, Clock, UserPlus, Gift, TrendingUp, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import CryptoTicker from '../components/CryptoTicker';
 
 export default function HomePage() {
   return (
     <div className="space-y-24">
+      <CryptoTicker />
       {/* Hero Section */}
       <section className="text-center pt-20 pb-12 flex flex-col items-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-accent/10 text-primary-accent text-sm font-semibold mb-8 border border-primary-accent/20">

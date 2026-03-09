@@ -1,6 +1,6 @@
 use axum::{
     extract::{State, Json},
-    routing::{post},
+    routing::{post, get},
     Router,
     http::{StatusCode, Method},
     response::IntoResponse,
@@ -17,6 +17,25 @@ use solana_sdk::{
     pubkey::Pubkey,
     system_program,
 };
+use cached::proc_macro::cached;
+use chrono::{DateTime, Utc};
+use reqwest;
+
+#[derive(Debug, Serialize, Clone)]
+struct CryptoPrice {
+    id: String,
+    symbol: String,
+    name: String,
+    image: String,
+    price_brl: f64,
+    change_24h: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct CoinGeckoCoin {
+    brl: f64,
+    brl_24h_change: f64,
+}
 
 // ... Webhook Payload structs ...
 #[derive(Deserialize, Debug)]
@@ -74,12 +93,49 @@ async fn main() {
     let app = Router::new()
         .route("/create-payment", post(create_payment_intent))
         .route("/webhook/mercadopago", post(mercado_pago_webhook))
+        .route("/prices", get(prices))
         .layer(cors)
         .with_state(state);
 
     println!("Backend server listening on 0.0.0.0:3000");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn prices() -> impl IntoResponse {
+    match get_prices().await {
+        Ok(prices) => (StatusCode::OK, Json(prices)).into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch prices").into_response(),
+    }
+}
+
+#[cached(time = 60, result = true)]
+async fn get_prices() -> Result<Vec<CryptoPrice>, reqwest::Error> {
+    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,usd-coin&vs_currencies=brl&include_24hr_change=true";
+    let response: HashMap<String, CoinGeckoCoin> = reqwest::get(url).await?.json().await?;
+
+    let mut prices: Vec<CryptoPrice> = Vec::new();
+
+    for (id, data) in response {
+        let (symbol, name, image) = match id.as_str() {
+            "bitcoin" => ("BTC", "Bitcoin", "https://assets.coingecko.com/coins/images/1/large/bitcoin.png"),
+            "ethereum" => ("ETH", "Ethereum", "https://assets.coingecko.com/coins/images/279/large/ethereum.png"),
+            "solana" => ("SOL", "Solana", "https://assets.coingecko.com/coins/images/4128/large/solana.png"),
+            "usd-coin" => ("USDC", "USD Coin", "https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png"),
+            _ => continue,
+        };
+
+        prices.push(CryptoPrice {
+            id,
+            symbol: symbol.to_string(),
+            name: name.to_string(),
+            image: image.to_string(),
+            price_brl: data.brl,
+            change_24h: data.brl_24h_change,
+        });
+    }
+
+    Ok(prices)
 }
 
 async fn create_payment_intent(
