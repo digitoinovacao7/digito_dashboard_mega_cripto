@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight,Zap } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function QuickBet() {
   const [betPlaced, setBetPlaced] = useState(false);

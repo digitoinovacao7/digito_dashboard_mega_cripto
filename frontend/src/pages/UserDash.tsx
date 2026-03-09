@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileSignature, ShieldAlert, KeyRound, ExternalLink, Edit2, Check, Loader2 } from 'lucide-react';
+import { FileSignature, KeyRound, ExternalLink, Edit2, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getUserStats } from '../api/bridge';
 import type { UserStats } from '../api/bridge';
