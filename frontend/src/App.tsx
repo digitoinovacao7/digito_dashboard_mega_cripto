@@ -4,6 +4,8 @@ import GameInterface from "./pages/GameInterface";
 import UserDash from "./pages/UserDash";
 import AdminDash from "./pages/AdminDash";
 import RulesPage from "./pages/RulesPage";
+import PreviousResultsPage from "./pages/PreviousResultsPage";
+import MyBetsPage from "./pages/MyBetsPage";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 
 function Navbar() {
@@ -30,18 +32,32 @@ function Navbar() {
                 Jogar Agora
               </Link>
               <Link
+                to="/resultados"
+                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Resultados
+              </Link>
+              <Link
                 to="/regras"
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Regras
               </Link>
               {user && (
-                <Link
-                  to="/meu-painel"
-                  className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Meu Painel
-                </Link>
+                <>
+                  <Link
+                    to="/meu-painel"
+                    className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Meu Painel
+                  </Link>
+                  <Link
+                    to="/minhas-apostas"
+                    className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Minhas Apostas
+                  </Link>
+                </>
               )}
               {isAdmin && (
                 <Link
@@ -103,8 +119,10 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/jogar" element={<GameInterface />} />
+            <Route path="/resultados" element={<PreviousResultsPage />} />
             <Route path="/regras" element={<RulesPage />} />
             <Route path="/meu-painel" element={<UserDash />} />
+            <Route path="/minhas-apostas" element={<MyBetsPage />} />
             <Route path="/admin-secret" element={<AdminDash />} />
           </Routes>
         </main>

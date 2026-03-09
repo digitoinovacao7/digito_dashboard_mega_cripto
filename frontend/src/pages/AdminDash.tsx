@@ -4,6 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { getAdminStats } from '../api/bridge';
 import type { AdminStats } from '../api/bridge';
+import DrawManagement from '../components/admin/DrawManagement';
+import UserManagement from '../components/admin/UserManagement';
+import FinancialMonitoring from '../components/admin/FinancialMonitoring';
+import PlatformSettings from '../components/admin/PlatformSettings';
 
 export default function AdminDash() {
   const { user, isAdmin, login } = useAuth();
@@ -65,7 +69,7 @@ export default function AdminDash() {
 
   // Se passou pelas barreiras, mostra o Painel
   return (
-    <div className="max-w-6xl mx-auto py-10 animate-fade-in">
+    <div className="max-w-6xl mx-auto py-10 animate-fade-in space-y-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-red-500/10 text-red-500 text-xs font-bold font-mono border border-red-500/20 mb-3 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
@@ -84,7 +88,7 @@ export default function AdminDash() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-12">
+      <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-slate-800 border-t-2 border-brand-accent p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform min-h-[140px]">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <BarChart3 className="w-20 h-20 text-brand-accent" />
@@ -139,6 +143,11 @@ export default function AdminDash() {
           )}
         </div>
       </div>
+      
+      <DrawManagement />
+      <UserManagement />
+      <FinancialMonitoring />
+      <PlatformSettings />
 
       {/* Danger Zone */}
       <div className="border border-red-900/50 bg-red-900/10 rounded-3xl p-8 relative overflow-hidden">

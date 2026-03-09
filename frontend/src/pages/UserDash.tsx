@@ -3,6 +3,8 @@ import { FileSignature, ShieldAlert, KeyRound, ExternalLink, Edit2, Check, Loade
 import { useAuth } from '../hooks/useAuth';
 import { getUserStats } from '../api/bridge';
 import type { UserStats } from '../api/bridge';
+import QuickBet from '../components/QuickBet';
+import { Link } from 'react-router-dom';
 
 export default function UserDash() {
   const { user } = useAuth();
@@ -26,16 +28,18 @@ export default function UserDash() {
     // TODO: Aqui vamos amarrar a chamada pro Backend (Rust) para salvar na Blockchain/DB
   };
 
+  const activeBets = data?.tickets.filter(ticket => ticket.status === 'Aguardando Sorteio');
+
   return (
     <div className="max-w-5xl mx-auto py-10 animate-fade-in">
       
       <div className="mb-10">
-        <h1 className="text-3xl font-heading font-bold mb-2">Meu Painel</h1>
+        <h1 className="text-3xl font-heading font-bold mb-2">Olá, {user?.email}!</h1>
         <p className="text-slate-400">Acompanhe seus bilhetes e sua identidade descentralizada.</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8 mb-12">
-        {/* Transparent Wallet */}
+      <div className="grid md:grid-cols-2 gap-8 mb-12">
+        <QuickBet />
         <div className="md:col-span-1 bg-gradient-to-br from-brand-web3/10 to-slate-800 border border-brand-web3/30 shadow-[0_0_30px_rgba(139,92,246,0.1)] rounded-3xl p-6 relative overflow-hidden group hover:shadow-[0_0_30px_rgba(139,92,246,0.2)] transition-shadow duration-500">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
             <KeyRound className="w-32 h-32 text-brand-web3" />
@@ -97,47 +101,40 @@ export default function UserDash() {
             </div>
           </div>
         </div>
-
-        {/* Info Box */}
-        <div className="md:col-span-2 bg-slate-800 border border-slate-700 rounded-3xl p-6 flex flex-col justify-center">
-            <h3 className="text-xl font-heading font-bold mb-2 flex items-center gap-2">
-              <ShieldAlert className="text-brand-accent w-5 h-5"/> Por que meus dados estão seguros?
-            </h3>
-            <p className="text-slate-400 text-sm leading-relaxed mb-4">
-              Ao vincular sua conta Google, o sistema cria uma chave isolada exclusiva para você (via MPC). Nós não conseguimos acessar sua chave privada. Todos os pagamentos automáticos são vinculados on-chain de forma transparente para o seu Pix.
-            </p>
-        </div>
       </div>
 
-      {/* Tickets Database */}
+      {/* Active Bets */}
       <div>
-        <h2 className="text-2xl font-bold font-heading mb-6 flex items-center gap-2">
-          <FileSignature className="text-slate-400"/> Meus Bilhetes
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold font-heading flex items-center gap-2">
+            <FileSignature className="text-slate-400"/> Apostas Ativas
+          </h2>
+          <Link to="/minhas-apostas" className="text-brand-accent hover:underline">Ver todas</Link>
+        </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-4 mb-12">
           {loading ? (
             <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
                <Loader2 className="w-8 h-8 text-slate-500 animate-spin mb-4" />
                <p className="text-slate-400 text-sm">Carregando jogos registrados na rede...</p>
             </div>
-          ) : data?.tickets.length === 0 ? (
+          ) : activeBets?.length === 0 ? (
              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center text-slate-400">
                Você ainda não possui bilhetes registrados neste ciclo.
              </div>
           ) : (
-            data?.tickets.map((ticket) => (
-              <div key={ticket.id} className={`bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-slate-500 transition-colors ${ticket.status === 'Não Premiado' ? 'opacity-70 bg-slate-900/50' : ''}`}>
+            activeBets?.slice(0, 3).map((ticket) => (
+              <div key={ticket.id} className={`bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-slate-500 transition-colors`}>
                 <div>
                   <div className="flex items-center gap-3 mb-3">
-                    <span className={`px-3 py-1 font-semibold text-xs uppercase tracking-wider rounded-lg border ${ticket.status === 'Aguardando Sorteio' ? 'bg-brand-accent/20 text-brand-accent border-brand-accent/20' : ticket.status === 'Premiado' ? 'bg-brand-pix/20 text-brand-pix border-brand-pix/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                    <span className={`px-3 py-1 font-semibold text-xs uppercase tracking-wider rounded-lg border bg-brand-accent/20 text-brand-accent border-brand-accent/20`}>
                       {ticket.status}
                     </span>
                     <span className="text-sm font-mono text-slate-400">Concurso #{ticket.drawId}</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {ticket.numbers.slice(0, 10).map((n, i) => (
-                      <span key={i} className={`text-xs font-mono font-bold bg-slate-900 w-6 h-6 flex items-center justify-center rounded ${ticket.status === 'Não Premiado' ? 'text-slate-500' : 'text-slate-300'}`}>
+                      <span key={i} className={`text-xs font-mono font-bold bg-slate-900 w-6 h-6 flex items-center justify-center rounded text-slate-300`}>
                         {n.toString().padStart(2, '0')}
                       </span>
                     ))}
@@ -150,7 +147,7 @@ export default function UserDash() {
                 <div className="w-full md:w-auto text-right flex flex-col items-center md:items-end gap-2 shrink-0">
                   {ticket.verifiedAt && <span className="text-sm text-slate-400">Verificado às {ticket.verifiedAt}</span>}
                   <button className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-brand-web3/20 hover:text-brand-web3 hover:border-brand-web3 text-white border border-slate-600 px-4 py-2 rounded-xl text-sm transition-all w-full md:w-auto h-fit">
-                    {ticket.status === 'Aguardando Sorteio' ? 'Verificador Pericial' : 'Ver na Blockchain'} <ExternalLink className="w-4 h-4"/>
+                    Verificador Pericial <ExternalLink className="w-4 h-4"/>
                   </button>
                 </div>
               </div>
@@ -158,7 +155,6 @@ export default function UserDash() {
           )}
         </div>
       </div>
-
     </div>
   );
 }

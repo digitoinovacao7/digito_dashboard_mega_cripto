@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Trophy, Clock } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Trophy, Clock, UserPlus, Gift, TrendingUp, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function HomePage() {
@@ -15,10 +15,7 @@ export default function HomePage() {
         </div>
         
         <h1 className="text-5xl md:text-7xl font-bold max-w-4xl tracking-tight mb-6">
-          Loteria Web3,<br /> 
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pix to-emerald-400">
-            Pagou Pix, Tá na Rede.
-          </span>
+          A loteria transparente que paga no PIX.
         </h1>
         
         <p className="text-xl text-slate-400 max-w-2xl mb-10 font-body">
@@ -34,12 +31,58 @@ export default function HomePage() {
         </div>
         
         <Link 
-          to="/jogar" 
+          to="/auth" 
           className="group flex items-center gap-3 bg-brand-pix hover:bg-green-500 text-white px-8 py-4 rounded-full text-xl font-bold transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(34,197,94,0.4)]"
         >
-          Fazer minha Aposta 
+          Cadastre-se para Jogar
           <ArrowRight className="group-hover:translate-x-1 transition-transform" />
         </Link>
+      </section>
+
+      {/* How it Works */}
+      <section className="text-center">
+        <h2 className="text-3xl font-heading font-bold mb-10">Como Funciona</h2>
+        <div className="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+          {[
+            { icon: UserPlus, text: "Cadastre-se com sua conta Google." },
+            { icon: Gift, text: "Escolha seus números e pague com PIX." },
+            { icon: TrendingUp, text: "Acompanhe o sorteio transparente na blockchain." },
+            { icon: Search, text: "Receba prêmios direto na sua conta via PIX!" }
+          ].map((step, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="p-4 rounded-full bg-slate-800 border border-slate-700 mb-4">
+                <step.icon className="w-8 h-8 text-brand-accent" />
+              </div>
+              <p className="text-slate-400">{step.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Last Draw Results */}
+      <section className="text-center">
+        <h2 className="text-3xl font-heading font-bold mb-4">Resultados do Último Sorteio</h2>
+        <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-3xl max-w-2xl mx-auto">
+          <div className="flex justify-center gap-4 mb-6">
+            {[1, 7, 13, 22, 35, 48].map(num => (
+              <div key={num} className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-700 text-white font-bold text-lg">{num}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-sm text-slate-400">Ganhadores (15 acertos)</p>
+              <p className="text-lg font-bold">0</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Ganhadores (14 acertos)</p>
+              <p className="text-lg font-bold">12</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Prêmio (14 acertos)</p>
+              <p className="text-lg font-bold">R$ 1.234,56</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Social Proof */}
