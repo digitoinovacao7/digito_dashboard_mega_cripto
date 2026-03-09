@@ -1,43 +1,60 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import GameInterface from './pages/GameInterface';
-import UserDash from './pages/UserDash';
-import AdminDash from './pages/AdminDash';
-import { AuthProvider, useAuth } from './hooks/useAuth';
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import GameInterface from "./pages/GameInterface";
+import UserDash from "./pages/UserDash";
+import AdminDash from "./pages/AdminDash";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 
 function Navbar() {
-  const { user, login, logout } = useAuth();
+  const { user, isAdmin, login, logout } = useAuth();
 
   return (
     <nav className="fixed top-0 w-full bg-brand-bg/80 backdrop-blur-md border-b border-white/10 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
-            <Link to="/" className="text-xl font-heading font-bold text-white flex items-center gap-2">
+            <Link
+              to="/"
+              className="text-xl font-heading font-bold text-white flex items-center gap-2"
+            >
               <span className="text-brand-accent">✦</span> MegaCripto
             </Link>
           </div>
           <div className="hidden md:block">
             <div className="ml-10 flex items-center space-x-8">
-              <Link to="/jogar" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link
+                to="/jogar"
+                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
                 Jogar Agora
               </Link>
               {user && (
-                <Link to="/meu-painel" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <Link
+                  to="/meu-painel"
+                  className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
                   Meu Painel
                 </Link>
               )}
-
-              
+              {isAdmin && (
+                <Link
+                  to="/admin-secret"
+                  className="text-brand-web3 hover:text-brand-web3/80 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  Painel de Controle
+                </Link>
+              )}
               {user ? (
                 <div className="flex items-center gap-4 ml-4 pl-4 border-l border-slate-700">
                   <div className="flex flex-col text-right">
-                     <span className="text-xs text-slate-400 font-mono">{user.email}</span>
-                     <span className="text-xs text-brand-pix font-mono font-bold tracking-wider">
-                       {user.pubkey.slice(0, 4)}...{user.pubkey.slice(-4)}
-                     </span>
+                    <span className="text-xs text-slate-400 font-mono">
+                      {user.email}
+                    </span>
+                    <span className="text-xs text-brand-pix font-mono font-bold tracking-wider">
+                      {user.pubkey.slice(0, 4)}...{user.pubkey.slice(-4)}
+                    </span>
                   </div>
-                  <button 
+                  <button
                     onClick={logout}
                     className="text-slate-400 hover:text-white text-sm font-medium transition-all"
                   >
@@ -45,14 +62,13 @@ function Navbar() {
                   </button>
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={login}
                   className="bg-brand-pix hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-brand-pix/20 ml-2"
                 >
                   Entrar com Google
                 </button>
               )}
-              
             </div>
           </div>
         </div>
@@ -62,20 +78,10 @@ function Navbar() {
 }
 
 function Footer() {
-  const { user, isAdmin } = useAuth();
   return (
     <footer className="w-full border-t border-slate-800/50 py-8 mt-12 bg-slate-900/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
         <p>&copy; 2026 MegaCripto. Contrato Inteligente Auditável.</p>
-        
-        {(!user || isAdmin) && (
-          <div className="flex items-center gap-2 px-3 py-1 rounded bg-brand-web3/10 border border-brand-web3/20">
-            <span className="w-2 h-2 rounded-full bg-brand-web3 animate-pulse"></span>
-            <Link to="/admin-secret" className="text-brand-web3 hover:text-white font-medium transition-colors text-xs uppercase tracking-wider">
-              Painel de Controle
-            </Link>
-          </div>
-        )}
       </div>
     </footer>
   );

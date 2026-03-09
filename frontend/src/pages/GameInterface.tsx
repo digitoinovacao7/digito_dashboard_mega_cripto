@@ -5,18 +5,35 @@ import { startBet } from '../api/bridge';
 
 export default function GameInterface() {
   const { user, login } = useAuth();
+  const [bets, setBets] = useState<number[][]>([]);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [isRequestingPix, setIsRequestingPix] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   
   const MAX_NUMBERS = 15;
 
+  const handleAddBet = () => {
+    if (selectedNumbers.length === MAX_NUMBERS) {
+      setBets([...bets, [...selectedNumbers].sort((a,b) => a-b)]);
+      setSelectedNumbers([]);
+    }
+  };
+
+  const handleRemoveBet = (index: number) => {
+    setBets(bets.filter((_, i) => i !== index));
+  };
+
   const handleCheckout = async () => {
-    if (!user || selectedNumbers.length !== MAX_NUMBERS) return;
+    let finalBets = [...bets];
+    if (selectedNumbers.length === MAX_NUMBERS) {
+       finalBets.push([...selectedNumbers].sort((a,b) => a-b));
+    }
+    
+    if (!user || finalBets.length === 0) return;
     
     setIsRequestingPix(true);
     try {
-      const response = await startBet(selectedNumbers, user.pubkey);
+      const response = await startBet(finalBets, user.pubkey);
       if (response.qr_code) {
         setQrCode(response.qr_code);
       }
@@ -121,15 +138,15 @@ export default function GameInterface() {
           <h3 className="text-xl font-bold font-heading mb-6 border-b border-slate-700 pb-4">Resumo da Aposta</h3>
           
           <div className="flex justify-between items-center mb-4">
-            <span className="text-slate-400">Números escolhidos</span>
+            <span className="text-slate-400">Números escolhidos {bets.length > 0 && `(Jogo Atual)`}</span>
             <span className="font-bold font-mono">
               <span className={isFull ? 'text-brand-pix' : 'text-slate-200'}>{selectedNumbers.length}</span> / 15
             </span>
           </div>
           
-          <div className="flex flex-wrap gap-2 mb-8 min-h-[6rem] content-start">
+          <div className="flex flex-wrap gap-2 mb-4 min-h-[4rem] content-start">
             {selectedNumbers.sort((a,b) => a-b).map(n => (
-              <span key={n} className="bg-slate-900 text-brand-web3 border border-brand-web3/30 px-2 py-1 flex items-center justify-center rounded-lg text-sm font-mono font-bold w-9">
+              <span key={n} className="bg-slate-900 border border-slate-700 px-2 py-1 flex items-center justify-center rounded-lg text-sm font-mono font-bold w-9 text-slate-300">
                 {n.toString().padStart(2, '0')}
               </span>
             ))}
@@ -138,11 +155,40 @@ export default function GameInterface() {
             )}
           </div>
 
-          <div className="border-t border-slate-700 pt-6 mb-8">
+          <button
+              onClick={handleAddBet}
+              disabled={!isFull || !user}
+              className={`w-full py-3 mb-6 rounded-xl font-bold text-sm transition-all border ${isFull && user ? 'border-brand-web3 text-brand-web3 hover:bg-brand-web3/10 shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'border-slate-700 text-slate-600 cursor-not-allowed'}`}
+          >
+              + Adicionar Jogo
+          </button>
+
+          {/* Carrinho de Jogos */}
+          {bets.length > 0 && (
+            <div className="mb-6 max-h-40 overflow-y-auto space-y-2 pr-2">
+               {bets.map((bet, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                      <div className="text-xs text-brand-pix font-mono leading-tight pr-2 break-all">
+                        {bet.map(n => n.toString().padStart(2, '0')).join(', ')}
+                      </div>
+                      <button onClick={() => handleRemoveBet(idx)} className="text-red-500 hover:text-red-400 text-xs shrink-0 font-bold uppercase tracking-wider">
+                        Remover
+                      </button>
+                  </div>
+               ))}
+            </div>
+          )}
+
+          <div className="border-t border-slate-700 pt-6 mb-8 mt-2">
             <div className="flex justify-between items-end">
               <span className="text-slate-400">Total a pagar</span>
-              <span className="text-3xl font-heading font-bold text-white">R$ 5,00</span>
+              <span className="text-3xl font-heading font-bold text-white">
+                R$ {((bets.length + (isFull ? 1 : 0)) * 5).toFixed(2).replace('.', ',')}
+              </span>
             </div>
+            <p className="text-slate-500 text-xs mt-1 text-right">
+              {bets.length + (isFull ? 1 : 0)} jogo(s) na aposta
+            </p>
           </div>
 
           {/* Seção do Botão ou Exibição do PIX */}
@@ -164,18 +210,18 @@ export default function GameInterface() {
             ) : (
               <button 
                   onClick={handleCheckout}
-                  disabled={!isFull || !user || isRequestingPix}
+                  disabled={(!isFull && bets.length === 0) || !user || isRequestingPix}
                   className={`
                     w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all
                     ${isRequestingPix 
                       ? 'bg-slate-700 text-slate-400 opacity-80 cursor-wait'
-                      : isFull && user
+                      : (isFull || bets.length > 0) && user
                       ? 'bg-brand-pix hover:bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
                       : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                     }
                   `}
                 >
-                  {isRequestingPix ? 'Gerando Cobrança...' : isFull ? <><QrCode /> Gerar PIX e Registrar</> : 'Selecione 15 números'}
+                  {isRequestingPix ? 'Gerando Cobrança...' : (isFull || bets.length > 0) ? <><QrCode /> Gerar PIX e Registrar</> : 'Selecione 15 números'}
               </button>
             )}
             

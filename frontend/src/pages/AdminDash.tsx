@@ -1,9 +1,23 @@
-import { BarChart3, Wallet, Users, AlertTriangle, Lock, ShieldAlert, LogIn } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BarChart3, Wallet, Users, AlertTriangle, Lock, ShieldAlert, LogIn, Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
+import { getAdminStats } from '../api/bridge';
+import type { AdminStats } from '../api/bridge';
 
 export default function AdminDash() {
   const { user, isAdmin, login } = useAuth();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAdmin) {
+      getAdminStats().then((data) => {
+        setStats(data);
+        setLoading(false);
+      });
+    }
+  }, [isAdmin]);
 
   // Se não estiver logado, exibe a tela de Login Administrativo
   if (!user) {
@@ -71,7 +85,7 @@ export default function AdminDash() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-slate-800 border-t-2 border-brand-accent p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
+        <div className="bg-slate-800 border-t-2 border-brand-accent p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform min-h-[140px]">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <BarChart3 className="w-20 h-20 text-brand-accent" />
           </div>
@@ -79,13 +93,17 @@ export default function AdminDash() {
             <BarChart3 className="w-5 h-5 text-brand-accent" />
             <h3 className="font-semibold">Volume (Concurso Atual)</h3>
           </div>
-          <div className="text-4xl font-black font-heading tracking-tight text-white mb-2 relative z-10">
-            R$ 4.250,00
-          </div>
-          <p className="text-sm text-slate-400 relative z-10">850 bilhetes emitidos</p>
+          {loading ? <div className="animate-pulse bg-slate-700 h-10 w-3/4 rounded mb-2"></div> : (
+             <div className="text-4xl font-black font-heading tracking-tight text-white mb-2 relative z-10">
+               R$ {stats?.volumeBRL.toFixed(2).replace('.', ',')}
+             </div>
+          )}
+          {loading ? <div className="animate-pulse bg-slate-700 h-4 w-1/2 rounded"></div> : (
+             <p className="text-sm text-slate-400 relative z-10">{stats?.totalTickets} bilhetes emitidos</p>
+          )}
         </div>
 
-        <div className="bg-slate-800 border-t-2 border-brand-web3 p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
+        <div className="bg-slate-800 border-t-2 border-brand-web3 p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform min-h-[140px]">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Wallet className="w-20 h-20 text-brand-web3" />
           </div>
@@ -93,13 +111,17 @@ export default function AdminDash() {
             <Wallet className="w-5 h-5 text-brand-web3" />
             <h3 className="font-semibold">Gas Pool (Solana)</h3>
           </div>
-          <div className="text-4xl font-black font-heading tracking-tight text-white mb-2 relative z-10">
-            12.45 SOL
-          </div>
-          <p className="text-sm text-slate-400 relative z-10">Suficiente para ~150k apostas</p>
+          {loading ? <div className="animate-pulse bg-slate-700 h-10 w-3/4 rounded mb-2"></div> : (
+            <div className="text-4xl font-black font-heading tracking-tight text-white mb-2 relative z-10">
+              {stats?.gasPoolSOL} SOL
+            </div>
+          )}
+          {loading ? <div className="animate-pulse bg-slate-700 h-4 w-1/2 rounded"></div> : (
+             <p className="text-sm text-slate-400 relative z-10">Suficiente para ~{(stats?.gasTxCapacity || 0) / 1000}k apostas</p>
+          )}
         </div>
 
-        <div className="bg-slate-800 border-t-2 border-slate-500 p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
+        <div className="bg-slate-800 border-t-2 border-slate-500 p-6 rounded-xl shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform min-h-[140px]">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Users className="w-20 h-20 text-slate-400" />
           </div>
@@ -107,10 +129,14 @@ export default function AdminDash() {
             <Users className="w-5 h-5 text-slate-400" />
             <h3 className="font-semibold">Novos Cadastros</h3>
           </div>
-          <div className="text-4xl font-black font-heading tracking-tight text-white mb-2 relative z-10">
-            142
-          </div>
-          <p className="text-sm text-slate-400 relative z-10">Últimas 24 horas</p>
+          {loading ? <div className="animate-pulse bg-slate-700 h-10 w-3/4 rounded mb-2"></div> : (
+             <div className="text-4xl font-black font-heading tracking-tight text-white mb-2 relative z-10">
+               {stats?.newRegistrations24h}
+             </div>
+          )}
+          {loading ? <div className="animate-pulse bg-slate-700 h-4 w-1/2 rounded"></div> : (
+              <p className="text-sm text-slate-400 relative z-10">Últimas 24 horas</p>
+          )}
         </div>
       </div>
 
@@ -142,8 +168,13 @@ export default function AdminDash() {
                 Assinatura 3: Cold Wallet Pendente
               </div>
             </div>
-            <button className="w-full xl:w-auto bg-red-600 hover:bg-red-700 text-white font-bold px-10 py-4 rounded-xl transition-all shadow-lg shadow-red-900/20 whitespace-nowrap opacity-50 cursor-not-allowed border border-red-500/50 flex items-center justify-center gap-3">
-              <Lock className="w-4 h-4" /> Executar Sorteio #001
+            
+            <button 
+                disabled={loading}
+                className="w-full xl:w-auto bg-red-600 hover:bg-red-700 text-white font-bold px-10 py-4 rounded-xl transition-all shadow-lg shadow-red-900/20 whitespace-nowrap opacity-50 cursor-not-allowed border border-red-500/50 flex items-center justify-center gap-3"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Lock className="w-4 h-4" />}
+              {loading ? "Sincronizando..." : `Executar Sorteio #${stats?.currentDrawId}`}
             </button>
           </div>
         </div>
