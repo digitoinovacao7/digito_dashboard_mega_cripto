@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import GameInterface from "./pages/GameInterface";
 import UserDash from "./pages/UserDash";
 import AdminDash from "./pages/AdminDash";
+import RulesPage from "./pages/RulesPage";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 
 function Navbar() {
@@ -27,6 +28,12 @@ function Navbar() {
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Jogar Agora
+              </Link>
+              <Link
+                to="/regras"
+                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Regras
               </Link>
               {user && (
                 <Link
@@ -96,6 +103,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/jogar" element={<GameInterface />} />
+            <Route path="/regras" element={<RulesPage />} />
             <Route path="/meu-painel" element={<UserDash />} />
             <Route path="/admin-secret" element={<AdminDash />} />
           </Routes>

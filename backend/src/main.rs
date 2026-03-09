@@ -1,16 +1,21 @@
 use axum::{
     extract::{State, Json},
-    routing::{post, get},
+    routing::{post},
     Router,
     http::{StatusCode, Method},
     response::IntoResponse,
 };
 use tower_http::cors::{Any, CorsLayer};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::str::FromStr;
+use anchor_client::{Client, Cluster, Program};
+use anchor_lang::prelude::*;
 use solana_sdk::{
     signature::{Keypair, Signer},
     pubkey::Pubkey,
+    system_program,
 };
 
 // ... Webhook Payload structs ...
@@ -28,7 +33,7 @@ struct PaymentData {
 }
 
 // ... Create Payment structs ...
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct BetPayload {
     numbers: Vec<u8>,
     user_pubkey: String,
@@ -41,15 +46,23 @@ struct PaymentIntentResponse {
 }
 
 struct AppState {
-    server_keypair: Keypair,
-    program_id: Pubkey,
+    program: Program,
+    server_keypair: Arc<Keypair>,
+    pending_bets: Arc<Mutex<HashMap<String, BetPayload>>>,
 }
 
 #[tokio::main]
 async fn main() {
+    let server_keypair = Arc::new(Keypair::new());
+    let program_id = Pubkey::from_str("3PSnWULou1gWHj1SxGL4S5Gu12PrrRvHsGifqpM4CjH9").unwrap();
+    
+    let client = Client::new(Cluster::Devnet, Arc::clone(&server_keypair));
+    let program = client.program(program_id);
+
     let state = Arc::new(AppState {
-        server_keypair: Keypair::new(),
-        program_id: Pubkey::default(), 
+        program,
+        server_keypair,
+        pending_bets: Arc::new(Mutex::new(HashMap::new())),
     });
 
     // Configure CORS for local development React site
@@ -76,14 +89,11 @@ async fn create_payment_intent(
     println!("Received bet request for public key: {}", payload.user_pubkey);
     println!("Numbers selected: {:?}", payload.numbers);
 
-    // 1. Gera o Pix no Mercado Pago através da API do SDK ou reqwest
-    // mock:
     let mp_tx_id = format!("MP-{}", uuid::Uuid::new_v4());
     
-    // 2. Salva temporariamente os números escolhidos no cache/banco
-    // (A implementar: Redis store com chave `mp_tx_id`)
+    let mut bets = state.pending_bets.lock().unwrap();
+    bets.insert(mp_tx_id.clone(), payload);
 
-    // 3. Retorna o QR Code (mock do copia e cola pix) para o Frontend
     let response = PaymentIntentResponse {
         qr_code: "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-42665544000052040000530398654045.005802BR5913MegaCripto SA6009Sao Paulo62070503***6304A1B2".to_string(),
         tx_id: mp_tx_id,
@@ -91,34 +101,36 @@ async fn create_payment_intent(
 
     (StatusCode::CREATED, Json(response))
 }
+
 async fn mercado_pago_webhook(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<WebhookPayload>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     println!("Received webhook: {:?}", payload);
     
-    // Support either "payment.created" action or "payment" type depending on MP API version
     let is_payment = payload.action.as_deref() == Some("payment.created") || payload.type_.as_deref() == Some("payment");
     
     if is_payment {
         if let Some(data) = payload.data {
             println!("Processing payment ID: {}", data.id);
-            // 1. Check payment status from Mercado Pago API using data.id
-            // let status = check_mercadopago_status(&data.id).await;
-            
-            // 2. If approved, retrieve bet from cache using payment ID
             let status = "approved"; // mock
             
             if status == "approved" {
-                // Mock bet data
-                let user_pubkey = Pubkey::new_unique();
-                let numbers: [u8; 15] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-                let draw_id = 1;
-                
-                // 3. Send to Solana Smart Contract
-                match process_bet_on_chain(&state, user_pubkey, numbers, draw_id, data.id.clone()).await {
-                    Ok(sig) => println!("Bet {} registered on-chain! Tx: {}", data.id, sig),
-                    Err(e) => eprintln!("Failed to register bet on-chain: {:?}", e),
+                let bet_payload = {
+                    let mut bets = state.pending_bets.lock().unwrap();
+                    bets.remove(&data.id)
+                };
+
+                if let Some(bet) = bet_payload {
+                    let user_pubkey: Pubkey = bet.user_pubkey.parse().unwrap();
+                    let draw_id = 1;
+                    
+                    match process_bet_on_chain(State(state), user_pubkey, bet.numbers, draw_id, data.id.clone()).await {
+                        Ok(sig) => println!("Bet {} registered on-chain! Tx: {}", data.id, sig),
+                        Err(e) => eprintln!("Failed to register bet on-chain: {:?}", e),
+                    }
+                } else {
+                    eprintln!("Bet not found for payment ID: {}", data.id);
                 }
             }
         }
@@ -127,11 +139,30 @@ async fn mercado_pago_webhook(
     Ok(StatusCode::OK)
 }
 
-// Function that integrates with Anchor Client
+#[derive(Accounts)]
+pub struct RegisterBet<'info> {
+    #[account(init, payer = server_authority, space = 8 + 32 + 15 + 8 + 4 + 64 + 8)]
+    pub bet_account: Account<'info, Bet>,
+    /// CHECK: The user who owns the bet, does not need to sign as server pays
+    pub user: AccountInfo<'info>,
+    #[account(mut)]
+    pub server_authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct Bet {
+    pub user_pubkey: Pubkey,
+    pub numbers: [u8; 15],
+    pub draw_id: u64,
+    pub pix_transaction_id: String,
+    pub timestamp: i64,
+}
+
 async fn process_bet_on_chain(
-    state: &AppState,
+    State(state): State<Arc<AppState>>,
     user_pubkey: Pubkey,
-    numbers: [u8; 15],
+    numbers: Vec<u8>,
     draw_id: u64,
     pix_transaction_id: String,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -139,27 +170,37 @@ async fn process_bet_on_chain(
         "Executing Anchor Instruction `register_bet` for user {} (MP Tx ID: {})",
         user_pubkey, pix_transaction_id
     );
+
+    let numbers_array: [u8; 15] = numbers.try_into().map_err(|_| "Invalid number of bets")?;
     
-    // Normal anchor-client interaction to send transaction to Solana
-    // let program = state.anchor_client.program(state.program_id);
-    // let bet_keypair = Keypair::new();
-    // let sig = program
-    //     .request()
-    //     .signer(&state.server_keypair)
-    //     .signer(&bet_keypair)
-    //     .accounts(digito_dashboard_mega_cripto::accounts::RegisterBet {
-    //         bet_account: bet_keypair.pubkey(),
-    //         user: user_pubkey,
-    //         server_authority: state.server_keypair.pubkey(),
-    //         system_program: solana_sdk::system_program::id(),
-    //     })
-    //     .args(digito_dashboard_mega_cripto::instruction::RegisterBet {
-    //         numbers,
-    //         draw_id,
-    //         pix_transaction_id,
-    //     })
-    //     .send()?;
-    // Ok(sig.to_string())
+    let bet_keypair = Keypair::new();
+
+    let sig = state.program
+        .request()
+        .signer(&*state.server_keypair)
+        .signer(&bet_keypair)
+        .accounts(RegisterBet {
+            bet_account: bet_keypair.pubkey(),
+            user: user_pubkey,
+            server_authority: state.server_keypair.pubkey(),
+            system_program: system_program::ID,
+        })
+        .args(instruction::RegisterBet {
+            numbers: numbers_array,
+            draw_id,
+            pix_transaction_id,
+        })
+        .send()?;
     
-    Ok("MockSignature123456789".to_string())
+    Ok(sig.to_string())
+}
+
+mod instruction {
+    use anchor_lang::prelude::*;
+    #[derive(AnchorSerialize, AnchorDeserialize)]
+    pub struct RegisterBet {
+        pub numbers: [u8; 15],
+        pub draw_id: u64,
+        pub pix_transaction_id: String,
+    }
 }

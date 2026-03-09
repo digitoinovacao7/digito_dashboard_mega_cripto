@@ -12,9 +12,10 @@ Criar um ecossistema de loteria Web3 auditável onde os usuários podem apostar 
 
 2. **Betting Mechanics (Módulo de Aposta)**:
    - **Escolha dos Números**: Frontend provê um volante digital interativo (1-25). O usuário seleciona 15 números.
-   - **Checkout**: Ao confirmar a aposta, o backend gera um pagamento dinâmico cobrando o valor do bilhete usando a API do Mercado Pago.
+   - **Escolha dos Números**: Frontend provê um volante digital interativo (1-25). O usuário seleciona entre 15 e 20 números.
+   - **Checkout**: Ao confirmar a aposta, o backend calcula o preço (ex: 15 números = R$ 3,50) e gera um pagamento dinâmico cobrando o valor da aposta usando a API do Mercado Pago.
    
 3. **Webhook & On-Chain Registration (Confirmação)**:
    - **Aprovação**: O Mercado Pago avisa o Backend via Webhook que o pagamento foi liquidado.
-   - **Registro Imutável**: O Servidor Web paga as taxas e assina a transação na Blockchain Solana, gravando permanentemente: os 15 números, o ID do sorteio e o ID da transação PIX.
+   - **Registro Imutável**: O Servidor Web paga as taxas e assina a transação na Blockchain Solana, gravando permanentemente: os números apostados, o ID do sorteio e o ID da transação PIX.
    - **Notificação**: O frontend muda o estado para "Confirmado" e exibe o link da aposta na blockchain.

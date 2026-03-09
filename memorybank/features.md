@@ -10,15 +10,15 @@ Este documento detalha as funcionalidades principais (features) da Loteria Web3 
 
 ## 2. Módulo de Aposta (Betting Engine)
 **Objetivo:** Interface de interação com o usuário para a escolha de números e pagamento da aposta utilizando sistema financeiro tradicional.
-* **2.1. Volante Digital (Frontend):** Interface React onde o usuário escolhe 15 números (de 1 a 25) ou aciona a funcionalidade "Surpresinha" (escolha aleatória).
-* **2.2. Geração de Pagamento (Backend):** Endpoint `/create-bet` no Rust/Axum que recebe os 15 números e a PublicKey e gera um PIX dinâmico (com QR Code e "Copia e Cola") via API do Mercado Pago.
+* **2.1. Volante Digital (Frontend):** Interface React onde o usuário escolhe entre 15 e 20 números (de 1 a 25) ou aciona a funcionalidade "Surpresinha" (escolha aleatória). A Home deve exibir as regras, tabela de preços e probabilidades.
+* **2.2. Geração de Pagamento (Backend):** Endpoint `/create-bet` no Rust/Axum que recebe os números escolhidos (15 a 20) e a PublicKey, calcula o valor da aposta conforme a tabela de preços e gera um PIX dinâmico (com QR Code e "Copia e Cola") via API do Mercado Pago.
 * **2.3. Cache Temporário:** Os números escolhidos aguardam no servidor vinculados ao `payment_id` enquanto o usuário realiza o pagamento.
 
 ## 3. Módulo de Confirmação (Webhook & Blockchain)
 **Objetivo:** Garantir a imutabilidade da aposta e transparência (Auditoria) validando que o pagamento foi recebido antes de registrar no blockchain.
 * **3.1. Escuta de Webhook (Backend):** Endpoint `/webhook/mercadopago` aguardando sinalização `approved` da API do Mercado Pago.
 * **3.2. Gatilho de Contrato Inteligente (Backend -> Solana):** Ao aprovar o pagamento, o Servidor Rust (via `anchor-client`) aciona o Smart Contract assinando a transação com a Master Wallet (bancando o *gas fee*).
-* **3.3. Transação Imutável On-Chain (Smart Contract):** A função `register_bet` no Anchor salva a combinação de números, o ID do sorteio e o `pix_transaction_id` como prova de auditoria no ledger da Solana.
+* **3.3. Transação Imutável On-Chain (Smart Contract):** A função `register_bet` no Anchor salva a combinação de números apostados, o ID do sorteio e o `pix_transaction_id` como prova de auditoria no ledger da Solana.
 
 ## 4. Módulo de Sorteio e Premiação (Planejamento Futuro)
 **Objetivo:** Selecionar os números vencedores e distribuir os prêmios de forma automatizada e transparente.

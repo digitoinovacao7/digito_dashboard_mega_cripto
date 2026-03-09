@@ -12,5 +12,6 @@ reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-feature
 solana-client = "1.18"
 solana-sdk = "1.18"
 anchor-client = "0.29.0"
+anchor-lang = "0.29.0"
 uuid = { version = "1.22.0", features = ["v4"] }
 tower-http = { version = "0.6.8", features = ["cors"] }
