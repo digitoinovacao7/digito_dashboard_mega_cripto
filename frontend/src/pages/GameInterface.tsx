@@ -215,6 +215,15 @@ export default function GameInterface() {
                <div className="text-text-disabled text-sm flex items-center justify-center w-full h-full italic">Nenhum número selecionado</div>
             )}
           </div>
+          
+          {isValidBet && (
+             <div className="text-center mb-4 animate-fade-in">
+               <span className="bg-feedback-success/20 text-feedback-success font-bold px-4 py-1.5 rounded-full border border-feedback-success/30 text-xs tracking-wider uppercase inline-block animate-pulse shadow-error">
+                  🕹️ VOLANTE PREENCHIDO! (GAME OVER)
+               </span>
+               <p className="text-[10px] text-text-secondary mt-2">Você ficou sem jogadas neste volante. Clique em Adicionar Jogo!</p>
+             </div>
+          )}
 
           <button
               onClick={handleAddBet}

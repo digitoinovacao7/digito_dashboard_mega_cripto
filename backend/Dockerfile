@@ -34,10 +34,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
-COPY --from=builder /app/target/release/lottery-backend /app/lottery-backend
+COPY --from=builder /app/target/release/mega-cripto-uai /app/mega-cripto-uai
 
 # Cloud Run injects the PORT environment variable
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["./lottery-backend"]
+CMD ["./mega-cripto-uai"]
