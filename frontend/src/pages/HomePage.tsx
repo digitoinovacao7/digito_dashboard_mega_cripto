@@ -128,38 +128,53 @@ export default function HomePage() {
 
       {/* Last Draw Results */}
       <section className="text-center">
-        <h2 className="text-3xl font-heading font-bold mb-4">Resultados do Sorteio #{stats?.currentDrawId ? Number(stats.currentDrawId) - 1 : "---"}</h2>
-        <div className="bg-bg-surface/50 border border-border-subtle p-8 rounded-3xl max-w-2xl mx-auto">
-          <div className="flex justify-center flex-wrap gap-4 mb-6">
-            {[2, 7, 11, 15, 16, 20].map(num => (
-              <div key={num} className="w-12 h-12 flex items-center justify-center rounded-full bg-bg-surface text-text-primary font-bold text-lg border border-border-subtle">
-                 {num.toString().padStart(2, '0')}
+        <h2 className="text-3xl font-heading font-bold mb-4">
+          {stats?.currentDrawId && Number(stats.currentDrawId) > 1 
+            ? `Resultados do Sorteio #${Number(stats.currentDrawId) - 1}` 
+            : "Últimos Resultados"}
+        </h2>
+        
+        {stats?.currentDrawId && Number(stats.currentDrawId) > 1 ? (
+          <div className="bg-bg-surface/50 border border-border-subtle p-8 rounded-3xl max-w-2xl mx-auto">
+            <div className="flex justify-center flex-wrap gap-4 mb-6">
+              {[2, 7, 11, 15, 16, 20].map(num => (
+                <div key={num} className="w-12 h-12 flex items-center justify-center rounded-full bg-bg-surface text-text-primary font-bold text-lg border border-border-subtle">
+                   {num.toString().padStart(2, '0')}
+                </div>
+              ))}
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-bg-surface text-text-disabled font-bold text-lg border border-border-subtle border-dashed">
+                 ...
               </div>
-            ))}
-            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-bg-surface text-text-disabled font-bold text-lg border border-border-subtle border-dashed">
-               ...
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-bg-surface text-text-primary font-bold text-lg border border-border-subtle">
+                 25
+              </div>
             </div>
-            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-bg-surface text-text-primary font-bold text-lg border border-border-subtle">
-               25
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-bg-base/50 p-4 rounded-xl border border-border-subtle/50">
-              <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">15 Acertos</p>
-              <p className="text-xl font-bold text-feedback-success">1 ganhador</p>
-            </div>
-            <div className="bg-bg-base/50 p-4 rounded-xl border border-border-subtle/50">
-              <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">Rateio</p>
-              <p className="text-xl font-bold text-text-primary">R$ 54.210,50</p>
-            </div>
-            <div className="bg-bg-base/50 p-4 rounded-xl border border-border-subtle/50">
-               <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">Auditoria</p>
-               <a href="#" className="text-sm font-mono text-primary-accent hover:underline flex items-center justify-center gap-1 mt-1">
-                 Ver Hash ↗
-               </a>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-bg-base/50 p-4 rounded-xl border border-border-subtle/50">
+                <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">15 Acertos</p>
+                <p className="text-xl font-bold text-feedback-success">1 ganhador</p>
+              </div>
+              <div className="bg-bg-base/50 p-4 rounded-xl border border-border-subtle/50">
+                <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">Rateio</p>
+                <p className="text-xl font-bold text-text-primary">R$ 54.210,50</p>
+              </div>
+              <div className="bg-bg-base/50 p-4 rounded-xl border border-border-subtle/50">
+                 <p className="text-xs text-text-secondary uppercase tracking-wider mb-2">Auditoria</p>
+                 <a href="#" className="text-sm font-mono text-primary-accent hover:underline flex items-center justify-center gap-1 mt-1">
+                   Ver Hash ↗
+                 </a>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-bg-surface/50 border border-border-subtle border-dashed p-10 rounded-3xl max-w-2xl mx-auto text-center flex flex-col items-center gap-4">
+            <Trophy className="w-12 h-12 text-text-disabled opacity-50" />
+            <h3 className="text-xl font-bold text-text-secondary">Aguardando o primeiro sorteio</h3>
+            <p className="text-text-disabled font-body">
+              Nenhum concurso foi finalizado ainda. Seja o primeiro a participar do nosso pool inicial!
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Social Proof */}
