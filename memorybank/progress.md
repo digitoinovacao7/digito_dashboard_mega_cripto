@@ -8,6 +8,8 @@
 - [x] Construção e roteamento da WebApp UI em React (Volante 15-20 números dinâmico, Login, Regras e AdminDash).
 - [x] Limpeza de Mocks no Frontend e conexão do Dashboard Admin/User diretamente na API local.
 - [x] Estrutura de persistência State/Mutex no lado do Rust pra salvar dados temporariamente limitados por `payment_id`.
+- [x] Sincronização da lógica de Concursos (Draw ID) entre o React Game Interface, Estado do Backend, PIX cache e chamada do Contrato Inteligente.
+- [x] Home page blindada para não exibir resultados mockados (falsos) quando o pool foi resetado ou antes do primeiro sorteio.
 
 ## Em Andamento / Para serem Executados
 - [ ] Conectar API Real do Mercado Pago no endpoint de criação de PIX e Webhook.

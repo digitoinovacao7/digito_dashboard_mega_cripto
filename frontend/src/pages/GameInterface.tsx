@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QrCode, Wand2, ShieldCheck, LockIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { startBet } from '../api/bridge';
+import { startBet, getAdminStats } from '../api/bridge';
 
 export default function GameInterface() {
   const { user, login } = useAuth();
@@ -10,6 +10,11 @@ export default function GameInterface() {
   const [isRequestingPix, setIsRequestingPix] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [targetNumbersCount, setTargetNumbersCount] = useState<number>(15);
+  const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getAdminStats().then(data => setCurrentDrawId(data.currentDrawId)).catch(console.error);
+  }, []);
   
   const OPTIONS = [
     { val: 15, label: "15 números", price: 3.50 },
@@ -131,6 +136,11 @@ export default function GameInterface() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-heading font-bold mb-4">Escolha sua Sorte</h1>
         <p className="text-text-secondary">Selecione 15 números ou peça uma surpresinha.</p>
+        {currentDrawId && (
+            <div className="mt-6 inline-block bg-bg-surface/50 px-6 py-2 rounded-full border border-primary-accent/30 text-primary-accent font-bold shadow-lg shadow-primary-accent/10">
+              Concurso Atual: #{currentDrawId}
+            </div>
+        )}
       </div>
 
       <div className={`grid lg:grid-cols-3 gap-12 transition-opacity duration-300 ${!user ? "opacity-20 pointer-events-none" : ""}`}>

@@ -100,10 +100,17 @@ struct UserStatsQuery {
     email: Option<String>,
 }
 
+#[derive(Clone)]
+struct PendingBet {
+    numbers: Vec<u8>,
+    user_pubkey: String,
+    draw_id: String,
+}
+
 struct AppState {
     program: Program<Arc<Keypair>>,
     server_keypair: Arc<Keypair>,
-    pending_bets: Arc<Mutex<HashMap<String, BetPayload>>>,
+    pending_bets: Arc<Mutex<HashMap<String, PendingBet>>>,
     admin_stats: Arc<Mutex<AdminStats>>,
     user_tickets: Arc<Mutex<HashMap<String, Vec<UserTicket>>>>,
 }
@@ -216,10 +223,18 @@ async fn create_payment_intent(
     println!("Numbers selected: {:?}", payload.numbers);
 
     let mp_tx_id = format!("MP-{}", uuid::Uuid::new_v4());
+    let current_draw_id = {
+        let stats = state.admin_stats.lock().unwrap();
+        stats.current_draw_id.clone()
+    };
     
     {
         let mut bets = state.pending_bets.lock().unwrap();
-        bets.insert(mp_tx_id.clone(), payload.clone());
+        bets.insert(mp_tx_id.clone(), PendingBet {
+            numbers: payload.numbers.clone(),
+            user_pubkey: payload.user_pubkey.clone(),
+            draw_id: current_draw_id.clone(),
+        });
     }
     
     {
@@ -238,13 +253,18 @@ async fn create_payment_intent(
         stats.volume_brl += price;
     }
 
+    let current_draw_id = {
+        let stats = state.admin_stats.lock().unwrap();
+        stats.current_draw_id.clone()
+    };
+
     {
         // Add ticket to user stats immediately simulating "payment accepted" 
         let mut user_map = state.user_tickets.lock().unwrap();
         let user_tickets = user_map.entry(payload.user_pubkey).or_insert(Vec::new());
         user_tickets.push(UserTicket {
             id: mp_tx_id.clone(),
-            draw_id: "101".to_string(),
+            draw_id: current_draw_id,
             numbers: payload.numbers,
             status: "Aguardando Sorteio".to_string(),
             verified_at: Some(chrono::Utc::now().format("%H:%M").to_string()),
@@ -280,7 +300,8 @@ async fn mercado_pago_webhook(
 
                 if let Some(bet) = bet_payload {
                     let user_pubkey: Pubkey = bet.user_pubkey.parse().unwrap();
-                    let draw_id = 1;
+                    // parse draw_id from string to u64 for the smart contract, default to 0 if parsing fails
+                    let draw_id = bet.draw_id.parse::<u64>().unwrap_or(0);
                     
                     match process_bet_on_chain(State(state), user_pubkey, bet.numbers, draw_id, data.id.clone()).await {
                         Ok(sig) => println!("Bet {} registered on-chain! Tx: {}", data.id, sig),
