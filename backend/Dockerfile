@@ -1,5 +1,5 @@
 # BUILD STAGE
-FROM rust:1.80-slim-bookworm as builder
+FROM rust:1.89-slim-bookworm as builder
 
 WORKDIR /app
 
@@ -8,20 +8,11 @@ RUN apt-get update && \
     apt-get install -y pkg-config libssl-dev build-essential libudev-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the manifest files
-COPY Cargo.toml Cargo.lock ./
+# Copy the entire project
+COPY . .
 
-# Create a dummy src/main.rs to build dependencies and cache them
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
-# Now copy the actual source code
-COPY ./src ./src
-
-# Build the real application
-RUN touch src/main.rs && cargo build --release
+# Build the backend application
+RUN cargo build --release -p mega-cripto-uai
 
 # RUNTIME STAGE
 FROM debian:bookworm-slim
