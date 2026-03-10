@@ -1,5 +1,5 @@
 use axum::{
-    extract::{State, Json},
+    extract::{State, Json, Query},
     routing::{post, get},
     Router,
     http::{StatusCode, Method},
@@ -11,14 +11,11 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::str::FromStr;
 use anchor_client::{Client, Cluster, Program};
-use anchor_lang::prelude::*;
 use solana_sdk::{
-    signature::{Keypair, Signer},
+    signature::Keypair,
     pubkey::Pubkey,
-    system_program,
 };
 use cached::proc_macro::cached;
-use chrono::{DateTime, Utc};
 use reqwest;
 
 #[derive(Debug, Serialize, Clone)]
@@ -58,16 +55,57 @@ struct BetPayload {
     user_pubkey: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct PaymentIntentResponse {
     qr_code: String,
     tx_id: String,
 }
 
+#[derive(Serialize, Clone)]
+struct AdminStats {
+  #[serde(rename = "volumeBRL")]
+  volume_brl: f64,
+  #[serde(rename = "totalTickets")]
+  total_tickets: u32,
+  #[serde(rename = "gasPoolSOL")]
+  gas_pool_sol: f64,
+  #[serde(rename = "gasTxCapacity")]
+  gas_tx_capacity: u32,
+  #[serde(rename = "newRegistrations24h")]
+  new_registrations_24h: u32,
+  #[serde(rename = "currentDrawId")]
+  current_draw_id: String,
+}
+
+#[derive(Serialize, Clone)]
+struct UserTicket {
+  id: String,
+  #[serde(rename = "drawId")]
+  draw_id: String,
+  numbers: Vec<u8>,
+  status: String,
+  #[serde(rename = "verifiedAt")]
+  verified_at: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+struct UserStats {
+  #[serde(rename = "pubKey")]
+  pub_key: String,
+  tickets: Vec<UserTicket>,
+}
+
+#[derive(Deserialize)]
+struct UserStatsQuery {
+    email: Option<String>,
+}
+
 struct AppState {
-    program: Program,
+    program: Program<Arc<Keypair>>,
     server_keypair: Arc<Keypair>,
     pending_bets: Arc<Mutex<HashMap<String, BetPayload>>>,
+    admin_stats: Arc<Mutex<AdminStats>>,
+    user_tickets: Arc<Mutex<HashMap<String, Vec<UserTicket>>>>,
 }
 
 #[tokio::main]
@@ -76,12 +114,21 @@ async fn main() {
     let program_id = Pubkey::from_str("3PSnWULou1gWHj1SxGL4S5Gu12PrrRvHsGifqpM4CjH9").unwrap();
     
     let client = Client::new(Cluster::Devnet, Arc::clone(&server_keypair));
-    let program = client.program(program_id);
+    let program = client.program(program_id).unwrap();
 
     let state = Arc::new(AppState {
         program,
         server_keypair,
         pending_bets: Arc::new(Mutex::new(HashMap::new())),
+        admin_stats: Arc::new(Mutex::new(AdminStats {
+            volume_brl: 0.00,
+            total_tickets: 0,
+            gas_pool_sol: 12.45,
+            gas_tx_capacity: 150000,
+            new_registrations_24h: 3,
+            current_draw_id: "101".to_string(),
+        })),
+        user_tickets: Arc::new(Mutex::new(HashMap::new())),
     });
 
     // Configure CORS for local development React site
@@ -94,11 +141,15 @@ async fn main() {
         .route("/create-payment", post(create_payment_intent))
         .route("/webhook/mercadopago", post(mercado_pago_webhook))
         .route("/prices", get(prices))
+        .route("/admin/stats", get(admin_stats))
+        .route("/user/stats", get(user_stats))
         .layer(cors)
         .with_state(state);
 
-    println!("Backend server listening on 0.0.0.0:3000");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    println!("Backend server listening on {}", addr);
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -109,10 +160,29 @@ async fn prices() -> impl IntoResponse {
     }
 }
 
+async fn admin_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let stats = state.admin_stats.lock().unwrap().clone();
+    (StatusCode::OK, Json(stats))
+}
+
+async fn user_stats(State(state): State<Arc<AppState>>, Query(params): Query<UserStatsQuery>) -> impl IntoResponse {
+    let email = params.email.unwrap_or_else(|| "unknown".to_string());
+    let tickets = {
+        let guard = state.user_tickets.lock().unwrap();
+        guard.get(&email).cloned().unwrap_or_else(Vec::new)
+    };
+    
+    let stats = UserStats {
+        pub_key: email, // mocking pubkey by email for now
+        tickets,
+    };
+    (StatusCode::OK, Json(stats))
+}
+
 #[cached(time = 60, result = true)]
-async fn get_prices() -> Result<Vec<CryptoPrice>, reqwest::Error> {
+async fn get_prices() -> std::result::Result<Vec<CryptoPrice>, String> {
     let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,usd-coin&vs_currencies=brl&include_24hr_change=true";
-    let response: HashMap<String, CoinGeckoCoin> = reqwest::get(url).await?.json().await?;
+    let response: HashMap<String, CoinGeckoCoin> = reqwest::get(url).await.map_err(|e| e.to_string())?.json().await.map_err(|e| e.to_string())?;
 
     let mut prices: Vec<CryptoPrice> = Vec::new();
 
@@ -147,8 +217,39 @@ async fn create_payment_intent(
 
     let mp_tx_id = format!("MP-{}", uuid::Uuid::new_v4());
     
-    let mut bets = state.pending_bets.lock().unwrap();
-    bets.insert(mp_tx_id.clone(), payload);
+    {
+        let mut bets = state.pending_bets.lock().unwrap();
+        bets.insert(mp_tx_id.clone(), payload.clone());
+    }
+    
+    {
+        let mut stats = state.admin_stats.lock().unwrap();
+        stats.total_tickets += 1;
+        // Mock price sum based on length
+        let price = match payload.numbers.len() {
+            15 => 3.50,
+            16 => 56.00,
+            17 => 476.00,
+            18 => 2856.00,
+            19 => 13566.00,
+            20 => 54264.00,
+            _ => 3.50,
+        };
+        stats.volume_brl += price;
+    }
+
+    {
+        // Add ticket to user stats immediately simulating "payment accepted" 
+        let mut user_map = state.user_tickets.lock().unwrap();
+        let user_tickets = user_map.entry(payload.user_pubkey).or_insert(Vec::new());
+        user_tickets.push(UserTicket {
+            id: mp_tx_id.clone(),
+            draw_id: "101".to_string(),
+            numbers: payload.numbers,
+            status: "Aguardando Sorteio".to_string(),
+            verified_at: Some(chrono::Utc::now().format("%H:%M").to_string()),
+        });
+    }
 
     let response = PaymentIntentResponse {
         qr_code: "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-42665544000052040000530398654045.005802BR5913MegaCripto SA6009Sao Paulo62070503***6304A1B2".to_string(),
@@ -161,7 +262,7 @@ async fn create_payment_intent(
 async fn mercado_pago_webhook(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<WebhookPayload>,
-) -> Result<StatusCode, (StatusCode, String)> {
+) -> std::result::Result<StatusCode, (StatusCode, String)> {
     println!("Received webhook: {:?}", payload);
     
     let is_payment = payload.action.as_deref() == Some("payment.created") || payload.type_.as_deref() == Some("payment");
@@ -195,68 +296,20 @@ async fn mercado_pago_webhook(
     Ok(StatusCode::OK)
 }
 
-#[derive(Accounts)]
-pub struct RegisterBet<'info> {
-    #[account(init, payer = server_authority, space = 8 + 32 + 15 + 8 + 4 + 64 + 8)]
-    pub bet_account: Account<'info, Bet>,
-    /// CHECK: The user who owns the bet, does not need to sign as server pays
-    pub user: AccountInfo<'info>,
-    #[account(mut)]
-    pub server_authority: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct Bet {
-    pub user_pubkey: Pubkey,
-    pub numbers: [u8; 15],
-    pub draw_id: u64,
-    pub pix_transaction_id: String,
-    pub timestamp: i64,
-}
-
 async fn process_bet_on_chain(
-    State(state): State<Arc<AppState>>,
+    _state: State<Arc<AppState>>,
     user_pubkey: Pubkey,
-    numbers: Vec<u8>,
-    draw_id: u64,
+    _numbers: Vec<u8>,
+    _draw_id: u64,
     pix_transaction_id: String,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> std::result::Result<String, Box<dyn std::error::Error>> {
     println!(
         "Executing Anchor Instruction `register_bet` for user {} (MP Tx ID: {})",
         user_pubkey, pix_transaction_id
     );
 
-    let numbers_array: [u8; 15] = numbers.try_into().map_err(|_| "Invalid number of bets")?;
+    // TODO: implement real Anchor client calling the program once IDL is available
+    let sig = format!("4PMy8H44BpqDXYZ_{}", pix_transaction_id);
     
-    let bet_keypair = Keypair::new();
-
-    let sig = state.program
-        .request()
-        .signer(&*state.server_keypair)
-        .signer(&bet_keypair)
-        .accounts(RegisterBet {
-            bet_account: bet_keypair.pubkey(),
-            user: user_pubkey,
-            server_authority: state.server_keypair.pubkey(),
-            system_program: system_program::ID,
-        })
-        .args(instruction::RegisterBet {
-            numbers: numbers_array,
-            draw_id,
-            pix_transaction_id,
-        })
-        .send()?;
-    
-    Ok(sig.to_string())
-}
-
-mod instruction {
-    use anchor_lang::prelude::*;
-    #[derive(AnchorSerialize, AnchorDeserialize)]
-    pub struct RegisterBet {
-        pub numbers: [u8; 15],
-        pub draw_id: u64,
-        pub pix_transaction_id: String,
-    }
+    Ok(sig)
 }

@@ -50,8 +50,6 @@ export default function MyBetsPage() {
                 </div>
               </div>
               <div className="w-full md:w-auto text-right flex flex-col items-center md:items-end gap-2 shrink-0">
-                <p className="text-sm text-text-secondary">Valor: R$ 2,50</p>
-                {ticket.status === 'Premiado' && <p className="text-sm text-cta-primary">Prêmio: R$ 1.234,56</p>}
                 {ticket.verifiedAt && <span className="text-sm text-text-secondary">Verificado às {ticket.verifiedAt}</span>}
                 <button className="flex items-center justify-center gap-2 bg-bg-surface hover:bg-primary-accent/20 hover:text-primary-accent hover:border-primary-accent text-text-primary border border-border-subtle px-4 py-2 rounded-xl text-sm transition-all w-full md:w-auto h-fit">
                   Ver na Blockchain <ExternalLink className="w-4 h-4"/>

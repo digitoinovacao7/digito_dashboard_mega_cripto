@@ -68,37 +68,22 @@ export const getPrices = async (): Promise<CryptoPrice[]> => {
   }
 };
 
-// TODO: Replace with Real Backend Fetch once endpoints are ready in Rust
 export const getAdminStats = async (): Promise<AdminStats> => {
-  // Simulating an Axios call to /admin/stats
-  return new Promise((resolve) => setTimeout(() => resolve({
-    volumeBRL: 4250.00,
-    totalTickets: 850,
-    gasPoolSOL: 12.45,
-    gasTxCapacity: 150000,
-    newRegistrations24h: 142,
-    currentDrawId: "001"
-  }), 800));
+  try {
+    const response = await axios.get(`${API_URL}/admin/stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar stats do admin:', error);
+    throw error;
+  }
 };
 
-export const getUserStats = async (_email: string): Promise<UserStats> => {
-   // Simulating an Axios call to /user/stats?email=
-   return new Promise((resolve) => setTimeout(() => resolve({
-    pubKey: "DxL9cE7yA2B5mCqP...8uF2",
-    tickets: [
-      {
-        id: "tx_1",
-        drawId: "001",
-        numbers: [2, 4, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 1],
-        status: "Aguardando Sorteio",
-        verifiedAt: "20:34"
-      },
-      {
-        id: "tx_2",
-        drawId: "000",
-        numbers: [5, 12, 14, 15, 16, 20, 21, 22, 23, 24, 7, 8, 9, 10, 3],
-        status: "Não Premiado"
-      }
-    ]
-   }), 600));
+export const getUserStats = async (email: string): Promise<UserStats> => {
+  try {
+    const response = await axios.get(`${API_URL}/user/stats`, { params: { email } });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar stats do usuário:', error);
+    throw error;
+  }
 };

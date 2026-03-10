@@ -9,19 +9,26 @@ O objetivo principal aqui é atrair, informar e converter. O visitante precisa e
 
 **Página Inicial (Landing Page):**
 - **Headline Principal:** Uma frase de impacto clara e convidativa. Ex: "A loteria transparente que paga no PIX."
-- **Prêmio Atual:** Destaque para o valor acumulado do prêmio principal do próximo sorteio. Isso gera urgência e excitação.
+- **Countdown e Stats em Tempo Real:** Um grande contador regressivo para o próximo sorteio, acompanhado do prêmio acumulado dinâmico e "Total de Apostas" atualizados ao vivo. Ao chegar a zero exibe: "APOSTAS ENCERRADAS. SORTEIO EM ANDAMENTO".
 - **Botão de Ação (CTA):** Um botão grande e visível para "Entrar com Google" ou "Cadastre-se para Jogar".
-- **Seção "Como Funciona":** Um resumo visual e simples em 3 ou 4 passos:
-    1. Cadastre-se com sua conta Google.
-    2. Escolha seus números e pague com PIX.
-    3. Acompanhe o sorteio transparente na blockchain.
-    4. Receba prêmios direto na sua conta via PIX!
-- **Resultados do Último Sorteio:** Exibir os números sorteados, o número de ganhadores por faixa e o prêmio pago. Isso serve como prova social e demonstra que o jogo é ativo.
-- **Seção de Transparência:** Pequenos ícones e textos destacando "Tecnologia Solana", "Sorteio Auditável com Chainlink" e "Pagamento Garantido".
+- **Seção "Como Funciona":** Um resumo visual e simples em 3 ou 4 passos.
+- **Resultados do Último Sorteio:** Exibir os números sorteados, o número de ganhadores por faixa e o prêmio pago.
+- **Seção de Transparência:** Pequenos ícones e textos destacando "Tecnologia Solana", "Sorteio Auditável com Chainlink VRF" e "Pagamento Garantido via PIX".
+
+**Página de Sorteio Ao Vivo (O Teatro da Transparência):**
+- Página dedicada que transforma o sorteio de backend em um evento visual em tempo real.
+- **Passos da Animação:** 
+  1. *Solicitando Aleatoriedade:* Animação com **Link da Transação no Solscan**.
+  2. *Aguardando Oráculo:* Efeito visual de processamento validando a cadeia de blocos.
+  3. *Grande Revelação:* Exibição dos números um a um.
+  4. *Apuração e Resultado Final:* Tabela final com todos os ganhadores por acerto.
 
 **Página de Resultados Anteriores:**
 - Um histórico de todos os sorteios passados.
-- Para cada sorteio: data, números sorteados, e para os mais curiosos, um link para a transação do sorteio na blockchain (Solscan/Solana Explorer). Isso reforça a promessa de transparência.
+- Para cada sorteio: data, números sorteados, e a **"Trilogia da Confiança"**:
+  1. **Verificar Prova Criptográfica do Sorteio:** Link para validá-la no Chainlink VRF.
+  2. **Verificar Transação de Sorteio na Blockchain:** Link para o Solscan da transação.
+  3. **Auditar o Contrato da Loteria:** Link direto para leitura do Smart Contract.
 
 **Página de Regras / FAQ:**
 - O documento de regras que acabamos de ajustar.
@@ -46,12 +53,9 @@ O foco aqui é a ação e o gerenciamento pessoal. A experiência deve ser fluid
 - Após o pagamento, a interface deve mudar de "Aguardando Pagamento" para "Aposta Confirmada!", exibindo o link da transação na Solana como comprovante. Este é um momento mágico para o usuário!
 
 **Página "Minhas Apostas" / Histórico:**
-- Uma lista detalhada de todas as apostas que o usuário já fez.
-- Cada item da lista deve mostrar: data, números jogados, valor pago, status (Confirmada, Aguardando Sorteio, Premiada, Não Premiada) e o valor do prêmio, se aplicável.
-
-**Página de Perfil / Conta:**
-- **Dados Pessoais:** Onde o usuário pode visualizar e atualizar seus dados do `paymentProfile` (nome completo, CPF, e principalmente, a chave PIX).
-- **Segurança:** Opção de "Sair" (Logout) e, idealmente, uma opção para deletar a conta.
+- Uma lista detalhada de todas as apostas que o usuário já fez e bilhetes ativos aguardando sorteio.
+- Cada item da lista deve mostrar: data, números jogados, valor pago, status (Confirmada, Aguardando Sorteio, Premiada, Não Premiada) e verificação do Has da Transação.
+- Concentra também as informações que antigamente residiam no "Meu Painel", simplificando a jornada do usuário.
 
 ## 3. Painel do Administrador
 Este é o centro de controle do negócio. A interface deve ser focada em dados, gerenciamento e operações. Deve ser uma aplicação web separada e altamente segura.
@@ -65,7 +69,7 @@ Este é o centro de controle do negócio. A interface deve ser focada em dados, 
 
 **Gerenciamento de Sorteios:**
 - Listar todos os sorteios (passados e futuros).
-- Capacidade de criar um novo concurso, definindo a data e hora do sorteio.
+- **Agendamento Automático:** Interface de configuração onde o Admin seleciona dia e hora (ex: Toda Quarta, às 20h). O frontend salva a configuração no backend via `PUT /api/admin/settings/draw-schedule`, automatizando a tarefa no Cloud Scheduler.
 - Para um sorteio finalizado, ver um resumo completo: total arrecadado, prêmio total distribuído, número de ganhadores por faixa.
 - **Função Crítica:** Uma visão para monitorar e, se necessário, reprocessar pagamentos de prêmios que possam ter falhado.
 
@@ -80,6 +84,4 @@ Este é o centro de controle do negócio. A interface deve ser focada em dados, 
 - Um log de todas as transações on-chain enviadas para a Solana.
 - Filtros para encontrar transações com falha (ex: PIX pago, mas aposta não registrada na blockchain) para que a equipe de suporte possa resolver rapidamente.
 
-**Configurações da Plataforma:**
-- Uma área para ajustar parâmetros do jogo sem precisar de um novo deploy de código.
-- Exemplos: alterar o preço da aposta, ajustar os percentuais da premiação, mudar textos institucionais do site.
+

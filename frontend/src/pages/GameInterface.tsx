@@ -9,11 +9,52 @@ export default function GameInterface() {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [isRequestingPix, setIsRequestingPix] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [targetNumbersCount, setTargetNumbersCount] = useState<number>(15);
   
-  const MAX_NUMBERS = 15;
+  const OPTIONS = [
+    { val: 15, label: "15 números", price: 3.50 },
+    { val: 16, label: "16 números", price: 56.00 },
+    { val: 17, label: "17 números", price: 476.00 },
+    { val: 18, label: "18 números", price: 2856.00 },
+    { val: 19, label: "19 números", price: 13566.00 },
+    { val: 20, label: "20 números", price: 54264.00 },
+  ];
+
+  const getPriceForSelectionLength = (len: number) => {
+    switch (len) {
+      case 15: return 3.50;
+      case 16: return 56.00;
+      case 17: return 476.00;
+      case 18: return 2856.00;
+      case 19: return 13566.00;
+      case 20: return 54264.00;
+      default: return 0;
+    }
+  };
+
+  const calculateTotalCartPrice = () => {
+    let total = 0;
+    // Soma as apostas no carrinho
+    bets.forEach(b => {
+      total += getPriceForSelectionLength(b.length);
+    });
+    // Soma a aposta atual se ela for válida (>= MIN_NUMBERS)
+    if (selectedNumbers.length === targetNumbersCount) {
+      total += getPriceForSelectionLength(selectedNumbers.length);
+    }
+    return total;
+  };
+
+  const handleTargetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = parseInt(e.target.value);
+    setTargetNumbersCount(val);
+    if (selectedNumbers.length > val) {
+      setSelectedNumbers(selectedNumbers.slice(0, val));
+    }
+  };
 
   const handleAddBet = () => {
-    if (selectedNumbers.length === MAX_NUMBERS) {
+    if (selectedNumbers.length === targetNumbersCount) {
       setBets([...bets, [...selectedNumbers].sort((a,b) => a-b)]);
       setSelectedNumbers([]);
     }
@@ -25,7 +66,7 @@ export default function GameInterface() {
 
   const handleCheckout = async () => {
     let finalBets = [...bets];
-    if (selectedNumbers.length === MAX_NUMBERS) {
+    if (selectedNumbers.length === targetNumbersCount) {
        finalBets.push([...selectedNumbers].sort((a,b) => a-b));
     }
     
@@ -47,21 +88,22 @@ export default function GameInterface() {
   const toggleNumber = (num: number) => {
     if (selectedNumbers.includes(num)) {
       setSelectedNumbers(selectedNumbers.filter(n => n !== num));
-    } else if (selectedNumbers.length < MAX_NUMBERS) {
+    } else if (selectedNumbers.length < targetNumbersCount) {
       setSelectedNumbers([...selectedNumbers, num]);
     }
   };
 
   const handleSurpresinha = () => {
     const nums: number[] = [];
-    while(nums.length < MAX_NUMBERS){
+    while(nums.length < targetNumbersCount){
         const r = Math.floor(Math.random() * 25) + 1;
         if(nums.indexOf(r) === -1) nums.push(r);
     }
     setSelectedNumbers(nums.sort((a,b) => a-b));
   };
 
-  const isFull = selectedNumbers.length === MAX_NUMBERS;
+  const isValidBet = selectedNumbers.length === targetNumbersCount;
+  const isAtLimit = selectedNumbers.length === targetNumbersCount;
 
   return (
     <div className="max-w-5xl mx-auto py-10 relative">
@@ -78,7 +120,7 @@ export default function GameInterface() {
           </p>
           <button 
             onClick={login}
-            className="flex items-center gap-3 bg-cta-primary hover:bg-feedback-success text-text-primary font-black py-4 px-10 rounded-full transition-all transform hover:scale-105 shadow-success"
+            className="flex items-center gap-3 bg-cta-primary hover:bg-feedback-success text-text-primary font-black py-4 px-10 rounded-full transition-all transform hover:scale-105 shadow-success cursor-pointer"
           >
             ENTRAR COM GOOGLE
           </button>
@@ -115,7 +157,7 @@ export default function GameInterface() {
                 <button
                   key={num}
                   onClick={() => toggleNumber(num)}
-                  disabled={(!isSelected && isFull) || !user}
+                  disabled={(!isSelected && isAtLimit) || !user}
                   className={`
                     w-12 h-12 md:w-16 md:h-16 rounded-full font-bold text-lg md:text-xl transition-all
                     flex items-center justify-center border-2 shadow-lg
@@ -123,7 +165,7 @@ export default function GameInterface() {
                       ? 'bg-primary-accent border-primary-accent/50 text-text-primary shadow-primary-accent/40 scale-105' 
                       : 'bg-bg-surface border-border-subtle text-text-secondary hover:border-border-subtle hover:bg-bg-surface'
                     }
-                    ${(!isSelected && isFull) || !user ? 'opacity-40 cursor-not-allowed' : ''}
+                    ${(!isSelected && isAtLimit) || !user ? 'opacity-40 cursor-not-allowed' : ''}
                   `}
                 >
                   {num.toString().padStart(2, '0')}
@@ -137,10 +179,29 @@ export default function GameInterface() {
         <div className="bg-bg-surface/80 backdrop-blur border border-border-subtle rounded-3xl p-8 shadow-2xl h-fit sticky top-24">
           <h3 className="text-xl font-bold font-heading mb-6 border-b border-border-subtle pb-4">Resumo da Aposta</h3>
           
+          <div className="mb-6">
+            <label className="block text-sm text-text-secondary mb-2 font-bold">Comprar Múltiplos Números</label>
+            <select 
+               value={targetNumbersCount} 
+               onChange={handleTargetChange}
+               className="w-full bg-bg-base border border-border-subtle text-text-primary rounded-xl p-3 focus:outline-none focus:border-primary-accent transition-colors font-mono font-bold hover:border-primary-accent cursor-pointer"
+               disabled={!user}
+            >
+               {OPTIONS.map(opt => (
+                  <option key={opt.val} value={opt.val} className="bg-[#1A103C] text-white">
+                    {opt.label} - R$ {opt.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                  </option>
+               ))}
+            </select>
+            <p className="text-xs text-text-disabled mt-2">
+              Aumente exponencialmente suas chances jogando mais de 15 números em um só volante.
+            </p>
+          </div>
+
           <div className="flex justify-between items-center mb-4">
             <span className="text-text-secondary">Números escolhidos {bets.length > 0 && `(Jogo Atual)`}</span>
             <span className="font-bold font-mono">
-              <span className={isFull ? 'text-cta-primary' : 'text-text-primary'}>{selectedNumbers.length}</span> / 15
+              <span className={isValidBet ? 'text-cta-primary' : 'text-text-primary'}>{selectedNumbers.length}</span> / {targetNumbersCount}
             </span>
           </div>
           
@@ -157,8 +218,8 @@ export default function GameInterface() {
 
           <button
               onClick={handleAddBet}
-              disabled={!isFull || !user}
-              className={`w-full py-3 mb-6 rounded-xl font-bold text-sm transition-all border ${isFull && user ? 'border-primary-accent text-primary-accent hover:bg-primary-accent/10 shadow-primary-accent' : 'border-border-subtle text-text-disabled cursor-not-allowed'}`}
+              disabled={!isValidBet || !user}
+              className={`w-full py-3 mb-6 rounded-xl font-bold text-sm transition-all border ${isValidBet && user ? 'border-primary-accent text-primary-accent hover:bg-primary-accent/10 shadow-primary-accent' : 'border-border-subtle text-text-disabled cursor-not-allowed'}`}
           >
               + Adicionar Jogo
           </button>
@@ -183,11 +244,11 @@ export default function GameInterface() {
             <div className="flex justify-between items-end">
               <span className="text-text-secondary">Total a pagar</span>
               <span className="text-3xl font-heading font-bold text-text-primary">
-                R$ {((bets.length + (isFull ? 1 : 0)) * 5).toFixed(2).replace('.', ',')}
+                R$ {calculateTotalCartPrice().toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <p className="text-text-disabled text-xs mt-1 text-right">
-              {bets.length + (isFull ? 1 : 0)} jogo(s) na aposta
+              {bets.length + (isValidBet ? 1 : 0)} jogo(s) na aposta
             </p>
           </div>
 
@@ -210,18 +271,18 @@ export default function GameInterface() {
             ) : (
               <button 
                   onClick={handleCheckout}
-                  disabled={(!isFull && bets.length === 0) || !user || isRequestingPix}
+                  disabled={(!isValidBet && bets.length === 0) || !user || isRequestingPix}
                   className={`
                     w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all
                     ${isRequestingPix 
                       ? 'bg-bg-surface text-text-secondary opacity-80 cursor-wait'
-                      : (isFull || bets.length > 0) && user
-                      ? 'bg-cta-primary hover:bg-feedback-success text-text-primary shadow-success' 
+                      : (isValidBet || bets.length > 0) && user
+                      ? 'bg-cta-primary hover:bg-feedback-success text-text-primary shadow-success cursor-pointer' 
                       : 'bg-bg-surface text-text-disabled cursor-not-allowed'
                     }
                   `}
                 >
-                  {isRequestingPix ? 'Gerando Cobrança...' : (isFull || bets.length > 0) ? <><QrCode /> Gerar PIX e Registrar</> : 'Selecione 15 números'}
+                  {isRequestingPix ? 'Gerando Cobrança...' : (isValidBet || bets.length > 0) ? <><QrCode /> Gerar PIX e Registrar</> : `Selecione ${targetNumbersCount} números`}
               </button>
             )}
             

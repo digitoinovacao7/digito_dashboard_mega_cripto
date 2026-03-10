@@ -6,6 +6,7 @@ import AdminDash from "./pages/AdminDash";
 import RulesPage from "./pages/RulesPage";
 import PreviousResultsPage from "./pages/PreviousResultsPage";
 import MyBetsPage from "./pages/MyBetsPage";
+import LiveDrawPage from "./pages/LiveDrawPage";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 
 function Navbar() {
@@ -26,12 +27,6 @@ function Navbar() {
           <div className="hidden md:block">
             <div className="ml-10 flex items-center space-x-8">
               <Link
-                to="/jogar"
-                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Jogar Agora
-              </Link>
-              <Link
                 to="/resultados"
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
@@ -46,11 +41,12 @@ function Navbar() {
               {user && (
                 <>
                   <Link
-                    to="/meu-painel"
-                    className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    to="/jogar"
+                    className="text-brand-accent hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors font-bold"
                   >
-                    Meu Painel
+                    Jogar Agora
                   </Link>
+
                   <Link
                     to="/minhas-apostas"
                     className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
@@ -87,7 +83,7 @@ function Navbar() {
               ) : (
                 <button
                   onClick={login}
-                  className="bg-brand-pix hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-brand-pix/20 ml-2"
+                  className="bg-brand-pix hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-brand-pix/20 ml-2 cursor-pointer"
                 >
                   Entrar com Google
                 </button>
@@ -104,7 +100,7 @@ function Footer() {
   return (
     <footer className="w-full border-t border-slate-800/50 py-8 mt-12 bg-slate-900/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
-        <p>&copy; 2026 MegaCripto. Contrato Inteligente Auditável.</p>
+        <p>&copy; 2026 Mega Cripto UAI. Contrato Inteligente Auditável.</p>
       </div>
     </footer>
   );
@@ -124,6 +120,7 @@ function AppContent() {
             <Route path="/meu-painel" element={<UserDash />} />
             <Route path="/minhas-apostas" element={<MyBetsPage />} />
             <Route path="/admin-secret" element={<AdminDash />} />
+            <Route path="/live-draw" element={<LiveDrawPage />} />
           </Routes>
         </main>
         <Footer />

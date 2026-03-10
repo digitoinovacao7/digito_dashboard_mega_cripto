@@ -1,9 +1,10 @@
 # System Patterns
 
 ## Architecture Overview
-- **Apresentação (Frontend)**: React / React Native. Responsável pelo componente do "volante" e feedback de status do Pix.
-- **Camada de Serviço (Backend REST/Webhook)**: Rust / Axum. Responsável por gerar os pagamentos no Mercado Pago, validar fluxos de dados, manter segredos, e assinar a transação que invoca a blockchain.
-- **Camada de Registro (Smart Contracts)**: Rust / Anchor na Blockchain da Solana. Responsável por validar se os bilhetes vêm do servidor aprovado, e gravar no ledger de forma imutável a estrutura de aposta.
+- **Apresentação (Frontend)**: React / React Native. Responsável pelo componente do "volante", feedback de status do Pix e pelo "Teatro da Transparência" (sorteios ao vivo).
+- **Camada de Serviço (Backend REST/Webhook)**: Rust / Axum. Responsável por gerar os pagamentos no Mercado Pago, validar fluxos de dados, manter segredos, processar a loteria de forma autônoma (via endpoint protegido com OIDC) e assinar transações na blockchain.
+- **Automação de Tarefas (Cloud Scheduler)**: Google Cloud Scheduler atua como o motor de cronograma, engatilhando rigidamente a chamada segura para iniciar o sorteio no backend.
+- **Camada de Registro e Oráculo (Smart Contracts)**: Rust / Anchor na Blockchain da Solana com integração ao Oráculo (ex: Chainlink VRF). Responsável por validar a origem dos bilhetes, gravar apostas imutavelmente e prover números aleatórios matematicamente provados.
 
 ## Design Decisions
 - **UX Gasless**: Usuários não pagam ou controlam gas. Uma "Master Wallet" controlada pelo Backend Rust (admin) banca o custo transacional. Para evitar abusos, o Anchor Contract tem validação de Signer exigindo a assinatura dessa carteira administrativa.

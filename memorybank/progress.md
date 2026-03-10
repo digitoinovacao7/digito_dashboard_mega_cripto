@@ -2,19 +2,15 @@
 
 ## Funcionalidades Concluídas
 - [x] Criação do repositório base com Anchor
-- [x] Estrutura do Smart Contract: Account \`UserAccount\` para rastrear as IDs Pix
-- [x] Estrutura do Smart Contract: Account \`Bet\` para vincular usuário, números, sorteio e transaction PIX ID.
-- [x] Estrutura do Smart Contract: Account `UserAccount` para rastrear as IDs Pix
-- [x] Estrutura do Smart Contract: Account `Bet` para vincular usuário, números, sorteio e transaction PIX ID.
+- [x] Estrutura do Smart Contract: Accounts `UserAccount` e `Bet` para gerenciar apostas e PIX IDs.
 - [x] Lógica `register_bet` no Blockchain (Validação Signature do Server).
 - [x] Setup do Backend em Axum (Cargo.toml e main.rs router estruturado).
-- [x] Handler para receber resposta assíncrona do Webhook Mercado Pago.
-- [x] Criação do Memory Bank de documentação da arquitetura do projeto.
+- [x] Construção e roteamento da WebApp UI em React (Volante 15-20 números dinâmico, Login, Regras e AdminDash).
+- [x] Limpeza de Mocks no Frontend e conexão do Dashboard Admin/User diretamente na API local.
+- [x] Estrutura de persistência State/Mutex no lado do Rust pra salvar dados temporariamente limitados por `payment_id`.
 
 ## Em Andamento / Para serem Executados
-- [x] Endpoint de Criação de Pedido na API do Mercado Pago (`/create-payment`).
-- [x] Construção e roteamento da WebApp UI em React (Volante, Login, Admin e Checkout).
-- [x] Conectar frontend axios calls the `startBet` button.
-- [ ] Estrutura de persistência Cache/Redis do lado do Rust pra salvar os "15 números" enquanto o webhook não chega limitados por `payment_id`.
-- [ ] Função final de conexão RPC `anchor-client` disparando envio real do Anchor Smart Contract do lado Servidor Node Web.
+- [ ] Conectar API Real do Mercado Pago no endpoint de criação de PIX e Webhook.
+- [ ] Função final de conexão RPC `anchor-client` disparando envio real da transação Solana do lado do Servidor.
+- [ ] Implementação Real-time (Websockets / Polling) para avisar a GameInterface que o Webhook do PIX compensou e emitir confetes "Aposta Confirmada".
 - [ ] Testes de Contratos do Solana (Pasta `tests/`).

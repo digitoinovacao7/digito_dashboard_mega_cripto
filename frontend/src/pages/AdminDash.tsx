@@ -7,7 +7,6 @@ import type { AdminStats } from '../api/bridge';
 import DrawManagement from '../components/admin/DrawManagement';
 import UserManagement from '../components/admin/UserManagement';
 import FinancialMonitoring from '../components/admin/FinancialMonitoring';
-import PlatformSettings from '../components/admin/PlatformSettings';
 
 export default function AdminDash() {
   const { user, isAdmin, login } = useAuth();
@@ -147,7 +146,6 @@ export default function AdminDash() {
       <DrawManagement />
       <UserManagement />
       <FinancialMonitoring />
-      <PlatformSettings />
 
       {/* Danger Zone */}
       <div className="border border-feedback-error/50 bg-feedback-error/10 rounded-3xl p-8 relative overflow-hidden">

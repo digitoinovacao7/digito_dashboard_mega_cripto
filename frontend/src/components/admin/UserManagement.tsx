@@ -1,9 +1,6 @@
 import { Users, Search } from 'lucide-react';
 
-const users = [
-  { id: 1, name: 'John Doe', email: 'john.doe@example.com', bets: 12 },
-  { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', bets: 5 },
-];
+const users: { id: number, name: string, email: string, bets: number }[] = [];
 
 export default function UserManagement() {
   return (
@@ -29,14 +26,20 @@ export default function UserManagement() {
           </tr>
         </thead>
         <tbody>
-          {users.map(user => (
-            <tr key={user.id} className="border-b border-border-subtle hover:bg-bg-surface/50">
-              <td className="p-2">{user.id}</td>
-              <td className="p-2">{user.name}</td>
-              <td className="p-2">{user.email}</td>
-              <td className="p-2">{user.bets}</td>
+          {users.length > 0 ? (
+            users.map(user => (
+              <tr key={user.id} className="border-b border-border-subtle hover:bg-bg-surface/50">
+                <td className="p-2">{user.id}</td>
+                <td className="p-2">{user.name}</td>
+                <td className="p-2">{user.email}</td>
+                <td className="p-2">{user.bets}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+               <td colSpan={4} className="p-4 text-center text-text-disabled">Nenhum usuário sincronizado.</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
