@@ -19,7 +19,7 @@ export default function PreviousResultsPage() {
       <div className="space-y-4">
         {loading ? (
           <p>Carregando...</p>
-        ) : (
+        ) : results.length > 0 ? (
           results.map((result) => (
             <div key={result.draw_id} className="bg-bg-surface/50 border border-border-subtle p-6 rounded-2xl">
               <div className="flex justify-between items-center mb-4">
@@ -42,6 +42,10 @@ export default function PreviousResultsPage() {
               </div>
             </div>
           ))
+        ) : (
+          <div className="text-center py-10">
+            <p className="text-text-disabled">Nenhum resultado anterior encontrado.</p>
+          </div>
         )}
       </div>
     </div>

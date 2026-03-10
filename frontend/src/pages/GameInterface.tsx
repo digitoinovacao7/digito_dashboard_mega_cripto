@@ -11,11 +11,21 @@ export default function GameInterface() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [targetNumbersCount, setTargetNumbersCount] = useState<number>(15);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
+  const [isDrawIdLoading, setIsDrawIdLoading] = useState(true);
   const [config, setConfig] = useState<Config | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
 
   useEffect(() => {
-    getAdminStats().then(data => setCurrentDrawId(data.currentDrawId)).catch(console.error);
-    getConfig().then(setConfig).catch(console.error);
+    setIsDrawIdLoading(true);
+    getAdminStats()
+      .then(data => setCurrentDrawId(data.currentDrawId))
+      .catch(console.error)
+      .finally(() => setIsDrawIdLoading(false));
+    setIsConfigLoading(true);
+    getConfig()
+      .then(setConfig)
+      .catch(console.error)
+      .finally(() => setIsConfigLoading(false));
   }, []);
 
   const getPriceForSelectionLength = (len: number) => {
@@ -123,10 +133,18 @@ export default function GameInterface() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-heading font-bold mb-4">Escolha sua Sorte</h1>
         <p className="text-text-secondary">Selecione 15 números ou peça uma surpresinha.</p>
-        {currentDrawId && (
-            <div className="mt-6 inline-block bg-bg-surface/50 px-6 py-2 rounded-full border border-primary-accent/30 text-primary-accent font-bold shadow-lg shadow-primary-accent/10">
-              Concurso Atual: #{currentDrawId}
-            </div>
+        {isDrawIdLoading ? (
+          <div className="mt-6 inline-block bg-bg-surface/50 px-6 py-2 rounded-full border border-border-subtle text-text-disabled">
+            Carregando concurso...
+          </div>
+        ) : currentDrawId ? (
+          <div className="mt-6 inline-block bg-bg-surface/50 px-6 py-2 rounded-full border border-primary-accent/30 text-primary-accent font-bold shadow-lg shadow-primary-accent/10">
+            Concurso Atual: #{currentDrawId}
+          </div>
+        ) : (
+          <div className="mt-6 inline-block bg-bg-surface/50 px-6 py-2 rounded-full border border-feedback-error/30 text-feedback-error font-bold">
+            Não foi possível carregar o concurso. Tente novamente.
+          </div>
         )}
       </div>
 
@@ -178,17 +196,23 @@ export default function GameInterface() {
           
           <div className="mb-6">
             <label className="block text-sm text-text-secondary mb-2 font-bold">Comprar Múltiplos Números</label>
-            <select 
-               value={targetNumbersCount} 
+            <select
+               value={targetNumbersCount}
                onChange={handleTargetChange}
                className="w-full bg-bg-base border border-border-subtle text-text-primary rounded-xl p-3 focus:outline-none focus:border-primary-accent transition-colors font-mono font-bold hover:border-primary-accent cursor-pointer"
-               disabled={!user || !config}
+               disabled={!user || !config || isConfigLoading}
             >
-               {config?.bet_prices.map(opt => (
+               {isConfigLoading ? (
+                <option>Carregando...</option>
+               ) : config && config.bet_prices.length > 0 ? (
+                config.bet_prices.map(opt => (
                   <option key={opt.numbers_count} value={opt.numbers_count} className="bg-[#1A103C] text-white">
                     {opt.numbers_count} números - R$ {opt.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
                   </option>
-               ))}
+                ))
+               ) : (
+                <option>Não há preços de aposta configurados</option>
+               )}
             </select>
             <p className="text-xs text-text-disabled mt-2">
               Aumente exponencialmente suas chances jogando mais de 15 números em um só volante.

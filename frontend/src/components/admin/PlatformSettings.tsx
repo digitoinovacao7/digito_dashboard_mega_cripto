@@ -4,16 +4,27 @@ import { getConfig, updateConfig, type Config } from '../../api/bridge';
 
 export default function PlatformSettings() {
   const [config, setConfig] = useState<Config>({ bet_prices: [], prize_percentage: 0 });
+  const [initialConfig, setInitialConfig] = useState<Config | null>(null);
   const [newPrice, setNewPrice] = useState({ numbers_count: 0, price: 0 });
 
   useEffect(() => {
-    getConfig().then(setConfig);
+    getConfig().then(data => {
+      setConfig(data);
+      setInitialConfig(data);
+    });
   }, []);
 
   const handleSave = () => {
-    updateConfig(config).then(() => {
-      alert('Configurações salvas com sucesso!');
-    });
+    updateConfig(config)
+      .then(savedConfig => {
+        alert('Configurações salvas com sucesso!');
+        setConfig(savedConfig);
+        setInitialConfig(savedConfig);
+      })
+      .catch(error => {
+        console.error('Failed to save config:', error);
+        alert('Erro ao salvar as configurações. Tente novamente.');
+      });
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -52,6 +63,8 @@ export default function PlatformSettings() {
       bet_prices: newBetPrices,
     }));
   };
+
+  const isChanged = JSON.stringify(config) !== JSON.stringify(initialConfig);
 
   return (
     <div className="bg-bg-surface border border-border-subtle p-6 rounded-xl shadow-lg">
@@ -111,7 +124,8 @@ export default function PlatformSettings() {
         </div>
         <button
           onClick={handleSave}
-          className="bg-cta-primary hover:bg-feedback-success text-text-primary font-bold py-2 px-4 rounded-lg"
+          disabled={!isChanged}
+          className="bg-cta-primary hover:bg-feedback-success text-text-primary font-bold py-2 px-4 rounded-lg disabled:bg-bg-surface disabled:text-text-disabled disabled:cursor-not-allowed"
         >
           Salvar Alterações
         </button>
