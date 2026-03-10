@@ -391,7 +391,7 @@ async fn mercado_pago_webhook(
                 };
 
                 if let Some(bet) = bet_payload {
-                    let user_pubkey: Pubkey = bet.user_pubkey..parse().unwrap();
+                    let user_pubkey: Pubkey = bet.user_pubkey.parse().unwrap();
                     // parse draw_id from string to u64 for the smart contract, default to 0 if parsing fails
                     let draw_id = bet.draw_id.parse::<u64>().unwrap_or(0);
                     
