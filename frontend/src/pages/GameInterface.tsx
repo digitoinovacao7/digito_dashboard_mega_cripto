@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { QrCode, Wand2, ShieldCheck, LockIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { startBet, getAdminStats } from '../api/bridge';
+import { startBet, getAdminStats, getConfig, type Config } from '../api/bridge';
 
 export default function GameInterface() {
   const { user, login } = useAuth();
@@ -11,30 +11,17 @@ export default function GameInterface() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [targetNumbersCount, setTargetNumbersCount] = useState<number>(15);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
 
   useEffect(() => {
     getAdminStats().then(data => setCurrentDrawId(data.currentDrawId)).catch(console.error);
+    getConfig().then(setConfig).catch(console.error);
   }, []);
-  
-  const OPTIONS = [
-    { val: 15, label: "15 números", price: 3.50 },
-    { val: 16, label: "16 números", price: 56.00 },
-    { val: 17, label: "17 números", price: 476.00 },
-    { val: 18, label: "18 números", price: 2856.00 },
-    { val: 19, label: "19 números", price: 13566.00 },
-    { val: 20, label: "20 números", price: 54264.00 },
-  ];
 
   const getPriceForSelectionLength = (len: number) => {
-    switch (len) {
-      case 15: return 3.50;
-      case 16: return 56.00;
-      case 17: return 476.00;
-      case 18: return 2856.00;
-      case 19: return 13566.00;
-      case 20: return 54264.00;
-      default: return 0;
-    }
+    if (!config) return 0;
+    const betPrice = config.bet_prices.find(p => p.numbers_count === len);
+    return betPrice ? betPrice.price : 0;
   };
 
   const calculateTotalCartPrice = () => {
@@ -195,11 +182,11 @@ export default function GameInterface() {
                value={targetNumbersCount} 
                onChange={handleTargetChange}
                className="w-full bg-bg-base border border-border-subtle text-text-primary rounded-xl p-3 focus:outline-none focus:border-primary-accent transition-colors font-mono font-bold hover:border-primary-accent cursor-pointer"
-               disabled={!user}
+               disabled={!user || !config}
             >
-               {OPTIONS.map(opt => (
-                  <option key={opt.val} value={opt.val} className="bg-[#1A103C] text-white">
-                    {opt.label} - R$ {opt.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+               {config?.bet_prices.map(opt => (
+                  <option key={opt.numbers_count} value={opt.numbers_count} className="bg-[#1A103C] text-white">
+                    {opt.numbers_count} números - R$ {opt.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
                   </option>
                ))}
             </select>

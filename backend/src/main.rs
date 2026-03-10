@@ -17,6 +17,8 @@ use solana_sdk::{
 };
 use cached::proc_macro::cached;
 use reqwest;
+use chrono::Local;
+use rand::Rng;
 
 #[derive(Debug, Serialize, Clone)]
 struct CryptoPrice {
@@ -107,12 +109,34 @@ struct PendingBet {
     draw_id: String,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+struct BetPrice {
+    numbers_count: u8,
+    price: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct Config {
+    bet_prices: Vec<BetPrice>,
+    prize_percentage: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct DrawResult {
+    draw_id: String,
+    date: String,
+    numbers: Vec<u8>,
+    tx: String,
+}
+
 struct AppState {
     program: Program<Arc<Keypair>>,
     server_keypair: Arc<Keypair>,
     pending_bets: Arc<Mutex<HashMap<String, PendingBet>>>,
     admin_stats: Arc<Mutex<AdminStats>>,
     user_tickets: Arc<Mutex<HashMap<String, Vec<UserTicket>>>>,
+    config: Arc<Mutex<Config>>,
+    draw_results: Arc<Mutex<Vec<DrawResult>>>,
 }
 
 #[tokio::main]
@@ -136,6 +160,31 @@ async fn main() {
             current_draw_id: "101".to_string(),
         })),
         user_tickets: Arc::new(Mutex::new(HashMap::new())),
+        config: Arc::new(Mutex::new(Config {
+            bet_prices: vec![
+                BetPrice { numbers_count: 15, price: 3.50 },
+                BetPrice { numbers_count: 16, price: 56.00 },
+                BetPrice { numbers_count: 17, price: 476.00 },
+                BetPrice { numbers_count: 18, price: 2856.00 },
+                BetPrice { numbers_count: 19, price: 13566.00 },
+                BetPrice { numbers_count: 20, price: 54264.00 },
+            ],
+            prize_percentage: 60.0,
+        })),
+        draw_results: Arc::new(Mutex::new(vec![
+            DrawResult {
+                draw_id: "100".to_string(),
+                date: "08/03/2026".to_string(),
+                numbers: vec![3, 11, 15, 22, 34, 49],
+                tx: "5zXe...y9fA".to_string(),
+            },
+            DrawResult {
+                draw_id: "99".to_string(),
+                date: "01/03/2026".to_string(),
+                numbers: vec![5, 12, 23, 33, 41, 50],
+                tx: "7aKb...c8gH".to_string(),
+            },
+        ])),
     });
 
     // Configure CORS for local development React site
@@ -150,6 +199,9 @@ async fn main() {
         .route("/prices", get(prices))
         .route("/admin/stats", get(admin_stats))
         .route("/user/stats", get(user_stats))
+        .route("/admin/config", get(get_config).post(update_config))
+        .route("/results", get(get_results))
+        .route("/admin/trigger-draw", post(trigger_draw))
         .layer(cors)
         .with_state(state);
 
@@ -160,12 +212,59 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
+async fn get_results(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let results = state.draw_results.lock().unwrap().clone();
+    (StatusCode::OK, Json(results))
+}
+
 async fn prices() -> impl IntoResponse {
     match get_prices().await {
         Ok(prices) => (StatusCode::OK, Json(prices)).into_response(),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch prices").into_response(),
     }
 }
+
+async fn get_config(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let config = state.config.lock().unwrap().clone();
+    (StatusCode::OK, Json(config))
+}
+
+async fn update_config(State(state): State<Arc<AppState>>, Json(new_config): Json<Config>) -> impl IntoResponse {
+    let mut config = state.config.lock().unwrap();
+    config.bet_prices = new_config.bet_prices;
+    config.prize_percentage = new_config.prize_percentage;
+    (StatusCode::OK, Json(config.clone()))
+}
+
+async fn trigger_draw(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let mut stats = state.admin_stats.lock().unwrap();
+    let mut results = state.draw_results.lock().unwrap();
+
+    let new_draw_id = stats.current_draw_id.parse::<u64>().unwrap_or(101) + 1;
+    stats.current_draw_id = new_draw_id.to_string();
+
+    let mut rng = rand::thread_rng();
+    let mut numbers: Vec<u8> = Vec::new();
+    while numbers.len() < 6 {
+        let n = rng.gen_range(1..=25);
+        if !numbers.contains(&n) {
+            numbers.push(n);
+        }
+    }
+    numbers.sort();
+
+    let new_result = DrawResult {
+        draw_id: new_draw_id.to_string(),
+        date: Local::now().format("%d/%m/%Y").to_string(),
+        numbers,
+        tx: format!("mock_tx_{}", new_draw_id),
+    };
+
+    results.insert(0, new_result);
+    //
+    (StatusCode::OK, Json(stats.clone()))
+}
+
 
 async fn admin_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let stats = state.admin_stats.lock().unwrap().clone();
@@ -240,16 +339,9 @@ async fn create_payment_intent(
     {
         let mut stats = state.admin_stats.lock().unwrap();
         stats.total_tickets += 1;
-        // Mock price sum based on length
-        let price = match payload.numbers.len() {
-            15 => 3.50,
-            16 => 56.00,
-            17 => 476.00,
-            18 => 2856.00,
-            19 => 13566.00,
-            20 => 54264.00,
-            _ => 3.50,
-        };
+        
+        let config = state.config.lock().unwrap();
+        let price = config.bet_prices.iter().find(|p| p.numbers_count == payload.numbers.len() as u8).map_or(0.0, |p| p.price);
         stats.volume_brl += price;
     }
 
@@ -299,7 +391,7 @@ async fn mercado_pago_webhook(
                 };
 
                 if let Some(bet) = bet_payload {
-                    let user_pubkey: Pubkey = bet.user_pubkey.parse().unwrap();
+                    let user_pubkey: Pubkey = bet.user_pubkey..parse().unwrap();
                     // parse draw_id from string to u64 for the smart contract, default to 0 if parsing fails
                     let draw_id = bet.draw_id.parse::<u64>().unwrap_or(0);
                     

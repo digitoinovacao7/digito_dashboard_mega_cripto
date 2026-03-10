@@ -87,3 +87,60 @@ export const getUserStats = async (email: string): Promise<UserStats> => {
     throw error;
   }
 };
+
+export interface BetPrice {
+  numbers_count: number;
+  price: number;
+}
+
+export interface Config {
+  bet_prices: BetPrice[];
+  prize_percentage: number;
+}
+
+export const getConfig = async (): Promise<Config> => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/config`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar configuração:', error);
+    throw error;
+  }
+};
+
+export const updateConfig = async (newConfig: Config): Promise<Config> => {
+  try {
+    const response = await axios.post(`${API_URL}/admin/config`, newConfig);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao atualizar configuração:', error);
+    throw error;
+  }
+};
+
+export interface DrawResult {
+  draw_id: string;
+  date: string;
+  numbers: number[];
+  tx: string;
+}
+
+export const getResults = async (): Promise<DrawResult[]> => {
+  try {
+    const response = await axios.get(`${API_URL}/results`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar resultados:', error);
+    throw error;
+  }
+};
+
+export const triggerDraw = async (): Promise<AdminStats> => {
+  try {
+    const response = await axios.post(`${API_URL}/admin/trigger-draw`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao acionar sorteio:', error);
+    throw error;
+  }
+};

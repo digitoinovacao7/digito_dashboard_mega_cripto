@@ -11,9 +11,8 @@ Criar um ecossistema de loteria Web3 auditável onde os usuários podem apostar 
    - **Armazenamento Seguro de Dados de Pagamento**: Após o primeiro login, o usuário informa seus dados para recebimento de prêmios (Nome Completo, CPF/CNPJ, Chave PIX). Esses dados são enviados para o backend e armazenados em um documento seguro na coleção `users` do Google Cloud Firestore. A blockchain armazena apenas a `publicKey` do usuário, garantindo total privacidade. O objeto `paymentProfile`, contendo os dados sensíveis, só é acessível pelo servidor. Em caso de premiação, o backend utiliza a `publicKey` do vencedor para consultar seu `paymentProfile` e realizar a transferência PIX de forma segura e automatizada.
 
 2. **Betting Mechanics (Módulo de Aposta)**:
-   - **Escolha dos Números**: Frontend provê um volante digital interativo (1-25). O usuário seleciona 15 números.
-   - **Escolha dos Números**: Frontend provê um volante digital interativo (1-25). O usuário seleciona entre 15 e 20 números.
-   - **Checkout**: Ao confirmar a aposta, o backend calcula o preço (ex: 15 números = R$ 3,50) e gera um pagamento dinâmico cobrando o valor da aposta usando a API do Mercado Pago.
+   - **Escolha dos Números**: Frontend provê um volante digital interativo (1-25). O usuário seleciona a quantidade de números que deseja apostar (ex: 15, 16, etc).
+   - **Checkout**: Ao confirmar a aposta, o backend calcula o preço (com base nos valores configurados pelo admin) e gera um pagamento dinâmico cobrando o valor da aposta usando a API do Mercado Pago.
    
 3. **Webhook & On-Chain Registration (Confirmação)**:
    - **Aprovação**: O Mercado Pago avisa o Backend via Webhook que o pagamento foi liquidado.

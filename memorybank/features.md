@@ -14,8 +14,8 @@ Este documento detalha as funcionalidades principais (features) da Loteria Web3 
 
 **Objetivo:** Interface de interação com o usuário para a escolha de números e pagamento da aposta utilizando sistema financeiro tradicional.
 
-- **2.1. Volante Digital (Frontend):** Interface React onde o usuário escolhe entre 15 e 20 números (de 1 a 25) ou aciona a funcionalidade "Surpresinha" (escolha aleatória). A Home deve exibir as regras, tabela de preços e probabilidades.
-- **2.2. Geração de Pagamento (Backend):** Endpoint `/create-bet` no Rust/Axum que recebe os números escolhidos (15 a 20) e a PublicKey, calcula o valor da aposta conforme a tabela de preços e gera um PIX dinâmico (com QR Code e "Copia e Cola") via API do Mercado Pago.
+- **2.1. Volante Digital (Frontend):** Interface React onde o usuário escolhe a quantidade de números (de 15 a 20, com preços dinâmicos) ou aciona a funcionalidade "Surpresinha" (escolha aleatória). A Home deve exibir as regras, tabela de preços e probabilidades.
+- **2.2. Geração de Pagamento (Backend):** Endpoint `/create-bet` no Rust/Axum que recebe os números escolhidos e a PublicKey, calcula o valor da aposta conforme a tabela de preços (configurável pelo admin) e gera um PIX dinâmico (com QR Code e "Copia e Cola") via API do Mercado Pago.
 - **2.3. Cache Temporário:** Os números escolhidos aguardam no servidor vinculados ao `payment_id` enquanto o usuário realiza o pagamento.
 
 ## 3. Módulo de Confirmação (Webhook & Blockchain)
@@ -25,6 +25,15 @@ Este documento detalha as funcionalidades principais (features) da Loteria Web3 
 - **3.1. Escuta de Webhook (Backend):** Endpoint `/webhook/mercadopago` aguardando sinalização `approved` da API do Mercado Pago.
 - **3.2. Gatilho de Contrato Inteligente (Backend -> Solana):** Ao aprovar o pagamento, o Servidor Rust (via `anchor-client`) aciona o Smart Contract assinando a transação com a Master Wallet (bancando o _gas fee_).
 - **3.3. Transação Imutável On-Chain (Smart Contract):** A função `register_bet` no Anchor salva a combinação de números apostados, o ID do sorteio e o `pix_transaction_id` como prova de auditoria no ledger da Solana.
+
+## 4. Módulo de Admin
+
+**Objetivo:** Painel para o administrador gerenciar a plataforma.
+
+- **4.1. Configuração de Preços:** O administrador pode adicionar, editar e remover os preços das apostas (quantidade de números e valor).
+- **4.2. Acionamento de Sorteio:** O administrador pode acionar um novo sorteio manualmente. Isso incrementa o número do concurso e gera um novo resultado.
+- **4.3. Visualização de Sorteios:** O administrador pode visualizar a lista de sorteios realizados, com data, números sorteados e link para a transação na blockchain.
+
 
 ## 4. Módulo de Sorteio Autônomo e Premiação
 

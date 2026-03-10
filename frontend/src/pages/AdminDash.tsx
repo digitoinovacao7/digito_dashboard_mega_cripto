@@ -2,16 +2,30 @@ import { useEffect, useState } from 'react';
 import { BarChart3, Wallet, Users, AlertTriangle, Lock, ShieldAlert, LogIn, Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
-import { getAdminStats } from '../api/bridge';
+import { getAdminStats, triggerDraw } from '../api/bridge';
 import type { AdminStats } from '../api/bridge';
 import DrawManagement from '../components/admin/DrawManagement';
 import UserManagement from '../components/admin/UserManagement';
 import FinancialMonitoring from '../components/admin/FinancialMonitoring';
+import PlatformSettings from '../components/admin/PlatformSettings';
 
 export default function AdminDash() {
   const { user, isAdmin, login } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isTriggeringDraw, setIsTriggeringDraw] = useState(false);
+
+  const handleTriggerDraw = async () => {
+    setIsTriggeringDraw(true);
+    try {
+      const newStats = await triggerDraw();
+      setStats(newStats);
+    } catch (error) {
+      alert("Houve um erro ao acionar o sorteio. Tente novamente.");
+    } finally {
+      setIsTriggeringDraw(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdmin) {
@@ -146,6 +160,7 @@ export default function AdminDash() {
       <DrawManagement />
       <UserManagement />
       <FinancialMonitoring />
+      <PlatformSettings />
 
       {/* Danger Zone */}
       <div className="border border-feedback-error/50 bg-feedback-error/10 rounded-3xl p-8 relative overflow-hidden">
@@ -177,11 +192,12 @@ export default function AdminDash() {
             </div>
             
             <button 
-                disabled={loading}
-                className="w-full xl:w-auto bg-feedback-error hover:brightness-110 text-text-primary font-bold px-10 py-4 rounded-xl transition-all shadow-lg shadow-error whitespace-nowrap opacity-50 cursor-not-allowed border border-feedback-error/50 flex items-center justify-center gap-3"
+                onClick={handleTriggerDraw}
+                disabled={loading || isTriggeringDraw}
+                className="w-full xl:w-auto bg-feedback-error hover:brightness-110 text-text-primary font-bold px-10 py-4 rounded-xl transition-all shadow-lg shadow-error whitespace-nowrap border border-feedback-error/50 flex items-center justify-center gap-3"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Lock className="w-4 h-4" />}
-              {loading ? "Sincronizando..." : `Executar Sorteio #${stats?.currentDrawId}`}
+              {isTriggeringDraw ? <Loader2 className="w-4 h-4 animate-spin"/> : <Lock className="w-4 h-4" />}
+              {isTriggeringDraw ? "Sorteando..." : `Executar Sorteio #${stats?.currentDrawId}`}
             </button>
           </div>
         </div>
