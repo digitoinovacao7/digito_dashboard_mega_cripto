@@ -76,7 +76,11 @@ export default function GameInterface() {
     
     setIsRequestingPix(true);
     try {
-      const response = await startBet(finalBets, user.pubkey);
+      const response = await startBet({
+        bets: finalBets,
+        userPubKey: user.pubkey,
+        payerEmail: user.email,
+      });
       if (response.qr_code) {
         setQrCode(response.qr_code);
       }
@@ -86,6 +90,7 @@ export default function GameInterface() {
       setIsRequestingPix(false);
     }
   };
+
 
   const toggleNumber = (num: number) => {
     if (selectedNumbers.includes(num)) {

@@ -8,17 +8,24 @@ export interface PaymentIntentResponse {
   qr_code_base64?: string;
   ticket_url?: string;
   tx_id: string;
+  mp_payment_id?: number;
 }
 
-export const startBet = async (bets: number[][], userPubKey: string): Promise<PaymentIntentResponse> => {
+export interface StartBetOptions {
+  bets: number[][];
+  userPubKey: string;
+  payerEmail?: string;
+  payerCpf?: string;
+}
+
+export const startBet = async (options: StartBetOptions): Promise<PaymentIntentResponse> => {
   try {
-    // 1. O Frontend dispara um pedido de Pix via POST.
-    const response = await axios.post(`${API_URL}/create-payment`, { 
-        bets,
-        user_pubkey: userPubKey
+    const response = await axios.post(`${API_URL}/create-payment`, {
+      bets: options.bets,
+      user_pubkey: options.userPubKey,
+      payer_email: options.payerEmail,
+      payer_cpf: options.payerCpf,
     });
-    
-    // 2. Retorna o conteúdo da cobrança PIX gerada pelo Backend
     return response.data;
   } catch (error) {
     console.error('Erro ao gerar cobrança Pix:', error);
@@ -51,6 +58,10 @@ export interface UserTicket {
   numbers: number[];
   status: "Aguardando Sorteio" | "Não Premiado" | "Premiado";
   verifiedAt?: string;
+  /** Link da transação da aposta na Solana Explorer */
+  solanaTx?: string;
+  /** Valor do prêmio em R$ (preenchido pelo backend após apuração) */
+  prizeAmountBRL?: number;
 }
 
 export interface UserStats {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2, ExternalLink, Trophy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getUserStats } from '../api/bridge';
 import type { UserStats } from '../api/bridge';
@@ -33,27 +33,77 @@ export default function MyBetsPage() {
           </div>
         ) : (
           data?.tickets.map((ticket) => (
-            <div key={ticket.id} className={`bg-bg-surface/50 border border-border-subtle rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-border-subtle transition-colors ${ticket.status === 'Não Premiado' ? 'opacity-70 bg-bg-surface/50' : ''}`}>
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`px-3 py-1 font-semibold text-xs uppercase tracking-wider rounded-lg border ${ticket.status === 'Aguardando Sorteio' ? 'bg-primary-accent/20 text-primary-accent border-primary-accent/20' : ticket.status === 'Premiado' ? 'bg-cta-primary/20 text-cta-primary border-cta-primary/20' : 'bg-bg-surface text-text-secondary border-border-subtle'}`}>
+            <div
+              key={ticket.id}
+              className={`bg-bg-surface/50 border rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-colors ${
+                ticket.status === 'Premiado'
+                  ? 'border-cta-primary/50 bg-cta-primary/5 shadow-success'
+                  : ticket.status === 'Não Premiado'
+                  ? 'border-border-subtle opacity-60'
+                  : 'border-border-subtle hover:border-border-subtle'
+              }`}
+            >
+              <div className="w-full">
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                  <span className={`px-3 py-1 font-semibold text-xs uppercase tracking-wider rounded-lg border ${
+                    ticket.status === 'Aguardando Sorteio'
+                      ? 'bg-primary-accent/20 text-primary-accent border-primary-accent/20'
+                      : ticket.status === 'Premiado'
+                      ? 'bg-cta-primary/20 text-cta-primary border-cta-primary/30'
+                      : 'bg-bg-surface text-text-secondary border-border-subtle'
+                  }`}>
                     {ticket.status}
                   </span>
                   <span className="text-sm font-mono text-text-secondary">Concurso #{ticket.drawId}</span>
+                  {ticket.verifiedAt && (
+                    <span className="text-xs text-text-disabled">Verificado às {ticket.verifiedAt}</span>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-1">
+
+                <div className="flex flex-wrap gap-1 mb-3">
                   {ticket.numbers.map((n, i) => (
-                    <span key={i} className={`text-xs font-mono font-bold bg-bg-surface w-6 h-6 flex items-center justify-center rounded ${ticket.status === 'Não Premiado' ? 'text-text-disabled' : 'text-text-primary'}`}>
+                    <span
+                      key={i}
+                      className={`text-xs font-mono font-bold w-7 h-7 flex items-center justify-center rounded-full border ${
+                        ticket.status === 'Não Premiado'
+                          ? 'bg-bg-surface text-text-disabled border-border-subtle'
+                          : 'bg-bg-surface text-text-primary border-border-subtle'
+                      }`}
+                    >
                       {n.toString().padStart(2, '0')}
                     </span>
                   ))}
                 </div>
+
+                {/* Exibe o prêmio quando o ticket é premiado */}
+                {ticket.status === 'Premiado' && ticket.prizeAmountBRL != null && (
+                  <div className="flex items-center gap-2 mt-2 bg-cta-primary/10 border border-cta-primary/30 px-4 py-2 rounded-xl w-fit">
+                    <Trophy className="w-4 h-4 text-cta-primary" />
+                    <span className="text-cta-primary font-bold text-sm">
+                      Prêmio: R$ {ticket.prizeAmountBRL.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} → enviado ao seu PIX!
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="w-full md:w-auto text-right flex flex-col items-center md:items-end gap-2 shrink-0">
-                {ticket.verifiedAt && <span className="text-sm text-text-secondary">Verificado às {ticket.verifiedAt}</span>}
-                <button className="flex items-center justify-center gap-2 bg-bg-surface hover:bg-primary-accent/20 hover:text-primary-accent hover:border-primary-accent text-text-primary border border-border-subtle px-4 py-2 rounded-xl text-sm transition-all w-full md:w-auto h-fit">
-                  Ver na Blockchain <ExternalLink className="w-4 h-4"/>
-                </button>
+
+              <div className="shrink-0">
+                {ticket.solanaTx ? (
+                  <a
+                    href={ticket.solanaTx}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 bg-bg-surface hover:bg-primary-accent/20 hover:text-primary-accent hover:border-primary-accent text-text-primary border border-border-subtle px-4 py-2 rounded-xl text-sm transition-all w-full md:w-auto"
+                  >
+                    Ver na Blockchain <ExternalLink className="w-4 h-4" />
+                  </a>
+                ) : (
+                  <button
+                    disabled
+                    className="flex items-center justify-center gap-2 bg-bg-surface/50 text-text-disabled border border-border-subtle px-4 py-2 rounded-xl text-sm cursor-not-allowed w-full md:w-auto"
+                  >
+                    Registrando... <Loader2 className="w-4 h-4 animate-spin" />
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -62,3 +112,4 @@ export default function MyBetsPage() {
     </div>
   );
 }
+

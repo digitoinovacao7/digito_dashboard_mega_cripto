@@ -2719,6 +2719,7 @@ dependencies = [
  "anchor-client",
  "anchor-lang 0.29.0",
  "axum",
+ "borsh 0.10.4",
  "cached",
  "chrono",
  "rand 0.8.5",
