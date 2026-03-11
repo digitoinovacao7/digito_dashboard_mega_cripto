@@ -20,7 +20,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import VerificarIdadePage from "./pages/VerificarIdadePage";
 
 function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user, isAdmin, login, logout } = useAuth();
+  const { user, isAdmin, openLoginModal, logout } = useAuth();
 
   return (
     <nav className="fixed top-0 w-full bg-bg-base/80 backdrop-blur-md border-b border-border-subtle z-40">
@@ -96,7 +96,7 @@ function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 </div>
               ) : (
                 <button
-                  onClick={login}
+                  onClick={openLoginModal}
                   className="bg-cta-primary hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-cta-primary/20 ml-2 cursor-pointer"
                 >
                   Entrar
@@ -114,6 +114,8 @@ function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
     </nav>
   );
 }
+
+import LoginModal from "./components/LoginModal";
 
 function AppContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -144,6 +146,7 @@ function AppContent() {
         </main>
         <Footer />
         <CookieBanner />
+        <LoginModal />
       </div>
     </Router>
   );

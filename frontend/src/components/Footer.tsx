@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 function ApostarAgoraLink() {
-  const { user, login } = useAuth();
-  const navigate = useNavigate();
+  const { user, openLoginModal, navigate } = useAuth();
   
   const handleClick = () => {
     if (user) {
       navigate('/jogar');
     } else {
-      login();
+      openLoginModal();
     }
   };
 

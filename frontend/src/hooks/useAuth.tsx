@@ -15,9 +15,12 @@ interface AuthContextType {
   isVerified: boolean;
   isAdmin: boolean;
   isLoading: boolean;
+  isLoginModalOpen: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   completeKyc: (simulationType: 'APPROVE' | 'REJECT') => Promise<void>;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +31,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  const openLoginModal = () => setIsLoginModalOpen(true);
+  const closeLoginModal = () => setIsLoginModalOpen(false);
 
   const checkVerificationStatus = useCallback(async (email: string) => {
     try {
@@ -73,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
+      closeLoginModal();
     } catch (error) {
       console.error("Erro ao fazer login com o Google:", error);
     }
@@ -111,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = user !== null && ADMIN_EMAILS.includes(user.email);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isVerified, isAdmin, isLoading, login, logout, completeKyc }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isVerified, isAdmin, isLoading, isLoginModalOpen, login, logout, completeKyc, openLoginModal, closeLoginModal }}>
       {!isLoading && children}
     </AuthContext.Provider>
   );
