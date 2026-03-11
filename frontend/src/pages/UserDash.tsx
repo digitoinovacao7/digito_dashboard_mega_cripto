@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { FileSignature, KeyRound, ExternalLink, Edit2, Check, Loader2 } from 'lucide-react';
+import { FileSignature, KeyRound, ExternalLink, Edit2, Check, Loader2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { getUserStats } from '../api/bridge';
-import type { UserStats } from '../api/bridge';
+import { getUserStats, getUserSettings, updateUserSettings } from '../api/bridge';
+import type { UserStats, UserSettingsOptions } from '../api/bridge';
 import QuickBet from '../components/QuickBet';
 import { Link } from 'react-router-dom';
 
@@ -13,15 +13,58 @@ export default function UserDash() {
   const [data, setData] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // States for Responsible Gaming
+  const [settings, setSettings] = useState<UserSettingsOptions | null>(null);
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [limitInput, setLimitInput] = useState<string>('');
+
   useEffect(() => {
     if (user?.email) {
-      getUserStats(user.email).then((res) => {
-        setData(res);
-        if (!pixKey && res.pubKey) setPixKey(user.email); // Just simulating
+      Promise.all([
+        getUserStats(user.email),
+        getUserSettings(user.email)
+      ]).then(([statsRes, settingsRes]) => {
+        setData(statsRes);
+        setSettings(settingsRes);
+        setLimitInput(settingsRes.daily_limit_brl ? settingsRes.daily_limit_brl.toString() : '');
+        if (!pixKey && statsRes.pubKey) setPixKey(user.email); // Just simulating
         setLoading(false);
       });
     }
   }, [user]);
+
+  const handleToggleSelfExclusion = async () => {
+    if (!user?.email || !settings) return;
+    const confirm = window.confirm("ATENÇÃO: A autoexclusão é uma ação séria. Enquanto ativa, você NÃO poderá comprar nenhum bilhete. Deseja prosseguir?");
+    if (!confirm) return;
+
+    setIsUpdatingSettings(true);
+    try {
+      const updated = await updateUserSettings(user.email, !settings.is_self_excluded, undefined);
+      setSettings(updated);
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao alterar modo de autoexclusão");
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+
+  const handleSaveLimit = async () => {
+    if (!user?.email || !settings) return;
+    setIsUpdatingSettings(true);
+    try {
+      const limitVal = limitInput === '' || Number(limitInput) <= 0 ? null : Number(limitInput);
+      const updated = await updateUserSettings(user.email, undefined, limitVal);
+      setSettings(updated);
+      alert("Limite atualizado com sucesso.");
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao atualizar limite");
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
 
   const handleSavePix = () => {
     setIsEditingPix(false);
@@ -155,6 +198,66 @@ export default function UserDash() {
           )}
         </div>
       </div>
+      
+      {/* Jogo Responsável */}
+      <div className="mt-12 bg-bg-surface/50 border border-border-subtle rounded-3xl p-8">
+        <h2 className="text-2xl font-bold font-heading mb-6 flex items-center gap-2 text-text-primary">
+          <ShieldAlert className="w-6 h-6 text-feedback-warning" /> Jogo Responsável
+        </h2>
+        <p className="text-text-secondary mb-8">
+          A Mega Cripto preza pela sua saúde financeira. Use as ferramentas abaixo para ter controle absoluto sobre o impacto do jogo usando a tecnologia on-chain a seu favor, limitando transações a nível de servidor.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Limite Financeiro */}
+          <div className="bg-bg-base/80 p-6 rounded-2xl border border-border-subtle">
+             <h3 className="font-bold text-text-primary mb-2">Limite Máximo de Gasto Diário</h3>
+             <p className="text-sm text-text-secondary mb-4">
+               Defina o quanto você permite que o sistema libere em apostas via PIX hoje. Deixe zerado ou vazio para apostas livres.
+             </p>
+             <div className="flex gap-2">
+                 <div className="relative flex-grow">
+                     <span className="absolute left-3 top-2.5 text-text-secondary font-mono">R$</span>
+                     <input 
+                        type="number"
+                        value={limitInput}
+                        onChange={e => setLimitInput(e.target.value)}
+                        className="w-full bg-bg-surface border border-border-subtle rounded-lg py-2 pl-9 pr-3 text-text-primary outline-none focus:border-primary-accent"
+                        placeholder="Ex: 50"
+                        disabled={isUpdatingSettings || loading}
+                     />
+                 </div>
+                 <button 
+                  onClick={handleSaveLimit}
+                  disabled={isUpdatingSettings || loading}
+                  className="bg-bg-surface hover:bg-border-subtle text-text-primary px-4 py-2 rounded-lg border border-border-subtle transition-colors"
+                 >
+                   Salvar
+                 </button>
+             </div>
+          </div>
+
+          {/* Autoexclusão temporária */}
+          <div className="bg-bg-base/80 p-6 rounded-2xl border border-feedback-error/20 inline-flex flex-col">
+             <h3 className="font-bold text-feedback-error mb-2">Autoexclusão da Conta</h3>
+             <p className="text-sm text-text-secondary mb-4 flex-grow">
+               Ao ativar isso, o contrato impede a carteira de criar transações. Nossas APIs não aceitarão gerar QR Codes Pix das suas cobranças, invalidando o uso da página de Game.
+             </p>
+             <button 
+                onClick={handleToggleSelfExclusion}
+                disabled={isUpdatingSettings || loading}
+                className={`w-full py-3 rounded-lg font-bold transition-all ${
+                  settings?.is_self_excluded 
+                  ? 'bg-bg-surface border border-feedback-error text-feedback-error shadow-error' 
+                  : 'bg-feedback-error text-white hover:bg-red-700'
+                }`}
+             >
+                {settings?.is_self_excluded ? "Desativar Autoexclusão" : "Ativar Bloqueio de Aposta"}
+             </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

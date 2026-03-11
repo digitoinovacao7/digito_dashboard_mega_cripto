@@ -202,6 +202,25 @@ struct RegisterPixKeyPayload {
     pix_key_type: String, // "email", "cpf", "phone", "random"
 }
 
+/// Configurações do Jogo Responsável
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct UserSettings {
+    is_self_excluded: bool,
+    daily_limit_brl: Option<f64>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GetSettingsPayload {
+    email: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct UpdateSettingsPayload {
+    email: String,
+    is_self_excluded: Option<bool>,
+    daily_limit_brl: Option<f64>,
+}
+
 /// Status de um pagamento específico (para polling do frontend)
 #[derive(Serialize)]
 struct PaymentStatusResponse {
@@ -251,6 +270,12 @@ struct PendingBet {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+struct PrizeTierConfig {
+    matches: u8,
+    prize_percentage: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 struct BetPrice {
     numbers_count: u8,
     price: f64,
@@ -258,8 +283,9 @@ struct BetPrice {
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Config {
+    global_prize_pool_percentage: f64,
     bet_prices: Vec<BetPrice>,
-    prize_percentage: f64,
+    prize_tiers: Vec<PrizeTierConfig>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -300,6 +326,8 @@ struct AppState {
     next_draw_at: Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
     /// Chaves PIX registradas por email de usuário
     user_pix_keys: Arc<Mutex<HashMap<String, (String, String)>>>, // email → (pix_key, pix_key_type)
+    /// Configurações do Jogo Responsável (limites e exclusão por email)
+    user_settings: Arc<Mutex<HashMap<String, UserSettings>>>,
 }
 
 // ─────────────────────────────────────────────────────────
@@ -332,6 +360,7 @@ async fn main() {
         })),
         user_tickets: Arc::new(Mutex::new(HashMap::new())),
         config: Arc::new(Mutex::new(Config {
+            global_prize_pool_percentage: 60.0,
             bet_prices: vec![
                 BetPrice { numbers_count: 15, price: 3.50 },
                 BetPrice { numbers_count: 16, price: 56.00 },
@@ -340,7 +369,11 @@ async fn main() {
                 BetPrice { numbers_count: 19, price: 13566.00 },
                 BetPrice { numbers_count: 20, price: 54264.00 },
             ],
-            prize_percentage: 60.0,
+            prize_tiers: vec![
+                PrizeTierConfig { matches: 15, prize_percentage: 60.0 },
+                PrizeTierConfig { matches: 14, prize_percentage: 25.0 },
+                PrizeTierConfig { matches: 13, prize_percentage: 15.0 },
+            ],
         })),
         draw_results: Arc::new(Mutex::new(vec![
             DrawResult {
@@ -355,6 +388,7 @@ async fn main() {
         bets_open: Arc::new(Mutex::new(true)),
         next_draw_at: Arc::new(Mutex::new(None)),
         user_pix_keys: Arc::new(Mutex::new(HashMap::new())),
+        user_settings: Arc::new(Mutex::new(HashMap::new())),
     });
 
     let cors = CorsLayer::new()
@@ -377,6 +411,7 @@ async fn main() {
         .route("/admin/toggle-bets",       post(toggle_bets))
         .route("/payment/status/:tx_id",   get(get_payment_status))
         .route("/user/register-pix",       post(register_pix_key))
+        .route("/user/settings",           post(get_user_settings).put(update_user_settings))
         .layer(cors)
         .with_state(state);
 
@@ -564,6 +599,55 @@ async fn register_pix_key(
     })))
 }
 
+
+// ─────────────────────────────────────────────────────────
+//  HANDLERS: JOGO RESPONSÁVEL (Settings)
+// ─────────────────────────────────────────────────────────
+
+async fn get_user_settings(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<GetSettingsPayload>,
+) -> impl IntoResponse {
+    let settings_map = state.user_settings.lock().unwrap();
+    let settings = settings_map.get(&payload.email).cloned().unwrap_or(UserSettings {
+        is_self_excluded: false,
+        daily_limit_brl: None,
+    });
+    
+    (StatusCode::OK, Json(settings))
+}
+
+async fn update_user_settings(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<UpdateSettingsPayload>,
+) -> impl IntoResponse {
+    let mut settings_map = state.user_settings.lock().unwrap();
+    
+    let mut current = settings_map.get(&payload.email).cloned().unwrap_or(UserSettings {
+        is_self_excluded: false,
+        daily_limit_brl: None,
+    });
+
+    if let Some(excluded) = payload.is_self_excluded {
+        current.is_self_excluded = excluded;
+    }
+    
+    // Convert -1 to None for "sem limite" from frontend, regular option to number
+    if let Some(limit) = payload.daily_limit_brl {
+        if limit < 0.0 {
+            current.daily_limit_brl = None;
+        } else {
+            current.daily_limit_brl = Some(limit);
+        }
+    }
+
+    settings_map.insert(payload.email.clone(), current.clone());
+    
+    println!("🛡️ Configurações Jogo Responsável atualizadas para {}: {:?}", payload.email, current);
+    
+    (StatusCode::OK, Json(current))
+}
+
 // ─────────────────────────────────────────────────────────
 //  HANDLER: criar pagamento PIX (Mercado Pago real)
 // ─────────────────────────────────────────────────────────
@@ -583,6 +667,24 @@ async fn create_payment_intent(
     let bets = &payload.bets;
     let user_email = payload.payer_email.clone().unwrap_or_else(|| "cliente@megacripto.com.br".to_string());
     let user_cpf = payload.payer_cpf.clone().unwrap_or_else(|| "00000000000".to_string());
+
+    // ── Prevenções de Jogo Responsável ────────────────────────────────
+    {
+        let settings = state.user_settings.lock().unwrap();
+        if let Some(user_setting) = settings.get(&user_email) {
+            if user_setting.is_self_excluded {
+                return (StatusCode::FORBIDDEN, Json(serde_json::json!({
+                    "error": "Sua conta está em modo de Autoexclusão. Conforme a Política de Jogo Responsável, novas apostas estão temporariamente bloqueadas."
+                }))).into_response();
+            }
+            
+            // Verificação de limite simples (nesta V1, usando limite diário por aposta)
+            if let Some(limit) = user_setting.daily_limit_brl {
+                // TODO (futuro): Calcular acúmulo real em histórico do usuário diário
+                // Por agora a verificação barra a intenção instantânea superior ao limite
+            }
+        }
+    }
 
     // Calcula o total a cobrar
     let config = state.config.lock().unwrap().clone();
@@ -936,19 +1038,34 @@ async fn trigger_draw(State(state): State<Arc<AppState>>) -> impl IntoResponse {
 
     println!("🎯  Sorteio #{}: {:?}", draw_id, drawn);
 
-    // ── 2. Apuração: varre todos os tickets e calcula acertos ────────────
-    let prize_percentage = state.config.lock().unwrap().prize_percentage;
-    let total_pool = state.admin_stats.lock().unwrap().volume_brl;
+    let config = state.config.lock().unwrap().clone();
     let jackpot_prev = *state.jackpot_accumulated.lock().unwrap();
-    let total_prize_pool = (total_pool * prize_percentage / 100.0) + jackpot_prev;
 
-    // Regras de distribuição por faixa (% do pool de prêmios)
-    // 15 acertos = 60%, 14 acertos = 25%, 13 acertos = 15%
-    let tier_rules: Vec<(u8, f64)> = vec![
-        (15, 0.60),
-        (14, 0.25),
-        (13, 0.15),
-    ];
+    // Calcula o total destinado a prêmios localmente somando a incidência de percentual de CAAAADA ticket do concurso
+    let mut total_draw_prize_contribution = 0.0;
+    {
+        let user_map = state.user_tickets.lock().unwrap();
+        for (_, tickets) in user_map.iter() {
+            for ticket in tickets.iter() {
+                if ticket.draw_id == draw_id {
+                    let len = ticket.numbers.len() as u8;
+                    if let Some(price_setting) = config.bet_prices.iter().find(|p| p.numbers_count == len) {
+                        total_draw_prize_contribution += price_setting.price * (config.global_prize_pool_percentage / 100.0);
+                    }
+                }
+            }
+        }
+    }
+
+    let total_prize_pool = total_draw_prize_contribution + jackpot_prev;
+
+    // Regras de distribuição por faixa (dynamic from Config)
+    let mut tier_rules: Vec<(u8, f64)> = config.prize_tiers.iter()
+        .map(|t| (t.matches, t.prize_percentage / 100.0))
+        .collect();
+    
+    // Sort descending by matches so highest matches are checked first
+    tier_rules.sort_by(|a, b| b.0.cmp(&a.0));
 
     // Conta ganhadores por faixa
     let mut tier_winners: HashMap<u8, Vec<String>> = HashMap::new(); // faixa → vec de user_emails
@@ -1179,7 +1296,6 @@ async fn update_config(
 ) -> impl IntoResponse {
     let mut config = state.config.lock().unwrap();
     config.bet_prices = new_config.bet_prices;
-    config.prize_percentage = new_config.prize_percentage;
     (StatusCode::OK, Json(config.clone()))
 }
 

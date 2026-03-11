@@ -7,6 +7,11 @@ import RulesPage from "./pages/RulesPage";
 import PreviousResultsPage from "./pages/PreviousResultsPage";
 import MyBetsPage from "./pages/MyBetsPage";
 import LiveDrawPage from "./pages/LiveDrawPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import ResponsibleGamingPage from "./pages/ResponsibleGamingPage";
+import Footer from "./components/Footer";
+import CookieBanner from "./components/CookieBanner";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 
 function Navbar() {
@@ -36,7 +41,7 @@ function Navbar() {
                 to="/regras"
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
-                Regras
+                Como Jogar
               </Link>
               {user && (
                 <>
@@ -96,20 +101,10 @@ function Navbar() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="w-full border-t border-slate-800/50 py-8 mt-12 bg-slate-900/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
-        <p>&copy; 2026 Mega Cripto UAI. Contrato Inteligente Auditável.</p>
-      </div>
-    </footer>
-  );
-}
-
 function AppContent() {
   return (
     <Router>
-      <div className="min-h-screen pt-16 flex flex-col font-body text-slate-200">
+      <div className="min-h-screen pt-16 flex flex-col font-body text-slate-200 relative">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
           <Routes>
@@ -121,9 +116,13 @@ function AppContent() {
             <Route path="/minhas-apostas" element={<MyBetsPage />} />
             <Route path="/admin-secret" element={<AdminDash />} />
             <Route path="/live-draw" element={<LiveDrawPage />} />
+            <Route path="/termos" element={<TermsPage />} />
+            <Route path="/privacidade" element={<PrivacyPage />} />
+            <Route path="/jogo-responsavel" element={<ResponsibleGamingPage />} />
           </Routes>
         </main>
         <Footer />
+        <CookieBanner />
       </div>
     </Router>
   );

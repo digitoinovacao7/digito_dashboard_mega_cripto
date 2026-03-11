@@ -104,9 +104,15 @@ export interface BetPrice {
   price: number;
 }
 
-export interface Config {
-  bet_prices: BetPrice[];
+export interface PrizeTierConfig {
+  matches: number;
   prize_percentage: number;
+}
+
+export interface Config {
+  global_prize_pool_percentage: number;
+  bet_prices: BetPrice[];
+  prize_tiers: PrizeTierConfig[];
 }
 
 export const getConfig = async (): Promise<Config> => {
@@ -206,4 +212,33 @@ export const registerPixKey = async (opts: RegisterPixKeyOptions): Promise<{ok: 
     pix_key_type: opts.pixKeyType,
   });
   return response.data;
+};
+
+export interface UserSettingsOptions {
+  is_self_excluded: boolean;
+  daily_limit_brl: number | null;
+}
+
+export const getUserSettings = async (email: string): Promise<UserSettingsOptions> => {
+  try {
+    const response = await axios.post(`${API_URL}/user/settings`, { email });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao buscar configurações do usuário:', error);
+    throw error;
+  }
+};
+
+export const updateUserSettings = async (email: string, is_self_excluded?: boolean, daily_limit_brl?: number | null): Promise<UserSettingsOptions> => {
+  try {
+    const response = await axios.put(`${API_URL}/user/settings`, { 
+        email, 
+        is_self_excluded, 
+        daily_limit_brl: daily_limit_brl === null ? -1 : daily_limit_brl 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao atualizar configurações do usuário:', error);
+    throw error;
+  }
 };
