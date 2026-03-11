@@ -169,6 +169,8 @@ struct AdminStats {
     new_registrations_24h: u32,
     #[serde(rename = "currentDrawId")]
     current_draw_id: String,
+    #[serde(rename = "globalPrizePoolPercentage")]
+    global_prize_pool_percentage: f64,
 }
 
 /// Status público do concurso, consumido pelo frontend
@@ -357,6 +359,7 @@ async fn main() {
             gas_tx_capacity: 150000,
             new_registrations_24h: 3,
             current_draw_id: "101".to_string(),
+            global_prize_pool_percentage: 60.0,
         })),
         user_tickets: Arc::new(Mutex::new(HashMap::new())),
         config: Arc::new(Mutex::new(Config {
@@ -1295,12 +1298,19 @@ async fn update_config(
     Json(new_config): Json<Config>,
 ) -> impl IntoResponse {
     let mut config = state.config.lock().unwrap();
+    config.global_prize_pool_percentage = new_config.global_prize_pool_percentage;
     config.bet_prices = new_config.bet_prices;
+    config.prize_tiers = new_config.prize_tiers;
     (StatusCode::OK, Json(config.clone()))
 }
 
 async fn admin_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let stats = state.admin_stats.lock().unwrap().clone();
+    let mut stats = state.admin_stats.lock().unwrap().clone();
+    
+    // Mix dynamic config variables in payload
+    let config = state.config.lock().unwrap().clone();
+    stats.global_prize_pool_percentage = config.global_prize_pool_percentage;
+    
     (StatusCode::OK, Json(stats))
 }
 

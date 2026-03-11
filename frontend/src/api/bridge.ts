@@ -50,6 +50,7 @@ export interface AdminStats {
   gasTxCapacity: number;
   newRegistrations24h: number;
   currentDrawId: string;
+  globalPrizePoolPercentage: number;
 }
 
 export interface UserTicket {
