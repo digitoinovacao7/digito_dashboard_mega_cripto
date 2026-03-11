@@ -330,6 +330,8 @@ struct AppState {
     user_pix_keys: Arc<Mutex<HashMap<String, (String, String)>>>, // email → (pix_key, pix_key_type)
     /// Configurações do Jogo Responsável (limites e exclusão por email)
     user_settings: Arc<Mutex<HashMap<String, UserSettings>>>,
+    /// Status de verificação KYC de cada usuário (email -> is_verified)
+    user_verification: Arc<Mutex<HashMap<String, bool>>>,
 }
 
 // ─────────────────────────────────────────────────────────
@@ -392,6 +394,7 @@ async fn main() {
         next_draw_at: Arc::new(Mutex::new(None)),
         user_pix_keys: Arc::new(Mutex::new(HashMap::new())),
         user_settings: Arc::new(Mutex::new(HashMap::new())),
+        user_verification: Arc::new(Mutex::new(HashMap::new())),
     });
 
     let cors = CorsLayer::new()
@@ -415,6 +418,8 @@ async fn main() {
         .route("/payment/status/:tx_id",   get(get_payment_status))
         .route("/user/register-pix",       post(register_pix_key))
         .route("/user/settings",           post(get_user_settings).put(update_user_settings))
+        .route("/auth/google-login",       post(google_login))
+        .route("/users/complete-profile",  post(handle_kyc_verification))
         .layer(cors)
         .with_state(state);
 
@@ -606,6 +611,97 @@ async fn register_pix_key(
 // ─────────────────────────────────────────────────────────
 //  HANDLERS: JOGO RESPONSÁVEL (Settings)
 // ─────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct GoogleLoginPayload {
+    email: String,
+}
+
+async fn google_login(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<GoogleLoginPayload>,
+) -> impl IntoResponse {
+    let mut verification_map = state.user_verification.lock().unwrap();
+    let is_verified = *verification_map.entry(payload.email.clone()).or_insert(false);
+
+    (StatusCode::OK, Json(serde_json::json!({
+        "token": "fake-jwt-token-for-testing",
+        "userStatus": {
+            "isVerified": is_verified
+        }
+    })))
+}
+
+enum ApiError {
+    MissingData,
+    ValidationFailed(String),
+    NotImplemented,
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        let (status, error_message) = match self {
+            ApiError::MissingData => (StatusCode::BAD_REQUEST, "Dados ausentes no payload."),
+            ApiError::ValidationFailed(reason) => (StatusCode::BAD_REQUEST, reason.as_str()),
+            ApiError::NotImplemented => (StatusCode::NOT_IMPLEMENTED, "Funcionalidade não implementada."),
+        };
+        (status, Json(serde_json::json!({ "error": error_message }))).into_response()
+    }
+}
+
+async fn update_user_status_as_verified(state: Arc<AppState>, email: &str) -> Result<(), ApiError> {
+    let mut verification_map = state.user_verification.lock().unwrap();
+    verification_map.insert(email.to_string(), true);
+    println!("✅ KYC APROVADO para {}", email);
+    Ok(())
+}
+
+async fn handle_kyc_verification(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CompleteProfilePayload>,
+) -> Result<impl IntoResponse, ApiError> {
+    let kyc_mode = std::env::var("KYC_MODE").unwrap_or_else(|_| "SIMULATED".to_string());
+
+    if kyc_mode == "REAL" {
+        println!("Executando verificação em modo REAL.");
+        
+        let full_name = payload.kyc_data.full_name.ok_or(ApiError::MissingData)?;
+        let tax_id = payload.kyc_data.tax_id.ok_or(ApiError::MissingData)?;
+        let birth_date = payload.kyc_data.birth_date.ok_or(ApiError::MissingData)?;
+        
+        match call_bigdatacorp_api(full_name, tax_id, birth_date).await {
+            Ok(_) => {
+                update_user_status_as_verified(state, &payload.email).await?;
+                Ok((StatusCode::OK, Json(serde_json::json!({"status": "approved"}))))
+            },
+            Err(e) => Err(e),
+        }
+    } else {
+        println!("Executando verificação em modo SIMULATED.");
+        let simulation_type = payload.kyc_data.simulation_type.ok_or(ApiError::MissingData)?;
+
+        if simulation_type == "APPROVE" {
+            update_user_status_as_verified(state.clone(), &payload.email).await?;
+            Ok((StatusCode::OK, Json(serde_json::json!({"status": "approved"}))))
+        } else {
+            let mut verification_map = state.user_verification.lock().unwrap();
+            verification_map.insert(payload.email.clone(), false);
+            println!("❌ KYC simulado REJEITADO para {}", payload.email);
+            Err(ApiError::ValidationFailed("Simulação: Verificação de KYC falhou.".to_string()))
+        }
+    }
+}
+
+async fn call_bigdatacorp_api(name: String, cpf: String, dob: String) -> Result<(), ApiError> {
+    println!("CHAMADA REAL PARA BIGDATACORP AINDA NÃO IMPLEMENTADA. Dados: {}, {}, {}", name, cpf, dob);
+    // TO-DO: Implementar a chamada HTTP real para a API da BigData Corp aqui.
+    // 1. Carregar a BIGDATACORP_API_KEY e BIGDATACORP_API_URL das variáveis de ambiente.
+    // 2. Montar o corpo da requisição conforme a documentação da BigData Corp.
+    // 3. Fazer a chamada com 'reqwest'.
+    // 4. Analisar a resposta e retornar Ok(()) se aprovado, ou Err(ApiError) se reprovado.
+    unimplemented!("A integração com a BigData Corp será feita nesta função.");
+}
+
 
 async fn get_user_settings(
     State(state): State<Arc<AppState>>,

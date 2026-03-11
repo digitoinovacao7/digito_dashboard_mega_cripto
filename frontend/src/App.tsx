@@ -16,6 +16,8 @@ import CookieBanner from "./components/CookieBanner";
 import MegaMenu from "./components/MegaMenu";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { Menu } from "lucide-react";
+import ProtectedRoute from "./components/ProtectedRoute";
+import VerificarIdadePage from "./pages/VerificarIdadePage";
 
 function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, isAdmin, login, logout } = useAuth();
@@ -124,16 +126,20 @@ function AppContent() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/jogar" element={<GameInterface />} />
             <Route path="/resultados" element={<PreviousResultsPage />} />
             <Route path="/regras" element={<RulesPage />} />
-            <Route path="/meu-painel" element={<UserDash />} />
-            <Route path="/minhas-apostas" element={<MyBetsPage />} />
-            <Route path="/admin-secret" element={<AdminDash />} />
-            <Route path="/live-draw" element={<LiveDrawPage />} />
             <Route path="/termos" element={<TermsPage />} />
             <Route path="/privacidade" element={<PrivacyPage />} />
             <Route path="/jogo-responsavel" element={<ResponsibleGamingPage />} />
+            <Route path="/live-draw" element={<LiveDrawPage />} />
+            <Route path="/verificar-idade" element={<VerificarIdadePage />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/jogar" element={<GameInterface />} />
+              <Route path="/meu-painel" element={<UserDash />} />
+              <Route path="/minhas-apostas" element={<MyBetsPage />} />
+              <Route path="/admin-secret" element={<AdminDash />} />
+            </Route>
           </Routes>
         </main>
         <Footer />
