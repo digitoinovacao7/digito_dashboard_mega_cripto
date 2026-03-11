@@ -59,3 +59,29 @@ Este documento detalha as funcionalidades principais (features) da Loteria Web3 
   1. *Prova Criptográfica:* Link de verificação do Chainlink VRF.
   2. *Transação de Execução:* Link para explorar a transação de sorteio no Solscan.
   3. *Auditoria do Contrato:* Link direto para o Smart Contract no Solscan.
+
+## 5. Melhorias de Experiência do Usuário e Comunicação (Polimento)
+
+**Objetivo:** Aumentar a confiança e a usabilidade da plataforma com feedback visual claro e canais de comunicação.
+
+- **5.1. Estados de Carregamento (Loading States):**
+  - **Onde:** Geração de QR Code, registro de aposta na Solana, carregamento do histórico em "Minhas Apostas".
+  - **O quê:** Implementar feedback visual (spinners, skeletons) para indicar ao usuário que uma operação está em andamento.
+
+- **5.2. Tratamento de Erros Amigável:**
+  - **Onde:** Falhas de comunicação com a API (backend).
+  - **O quê:** Exibir mensagens de erro claras e não-técnicas para o usuário (ex: "toast" ou "snackbar") em vez de quebras abruptas.
+
+- **5.3. Estados Vazios (Empty States):**
+  - **Onde:** Página "Minhas Apostas" para um novo usuário.
+  - **O quê:** Mostrar uma mensagem convidativa com um call-to-action (ex: "Você ainda não fez nenhuma aposta. Que tal tentar a sorte?") em vez de uma tela em branco.
+
+- **5.4. E-mails Transacionais Básicos:**
+  - **Onde:** Backend (Rust).
+  - **O quê:** Integrar um serviço de e-mail (como SendGrid ou Resend) para enviar e-mails automáticos essenciais:
+    - E-mail de Boas-Vindas após o primeiro login.
+    - E-mail de Confirmação de Aposta.
+
+- **5.5. Canal de Suporte Simples:**
+  - **Onde:** Rodapé do site.
+  - **O quê:** Adicionar um link "Suporte" que abre o cliente de e-mail do usuário com o endereço de suporte pré-preenchido (`mailto:suporte@megacripto.com`).

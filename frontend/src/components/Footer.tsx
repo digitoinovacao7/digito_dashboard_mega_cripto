@@ -25,7 +25,7 @@ export default function Footer() {
   return (
     <footer className="mt-20 border-t border-border-subtle bg-bg-surface/50">
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
           {/* Col 1 */}
           <div className="md:col-span-1 border-r border-border-subtle/50 pr-6">
@@ -65,6 +65,7 @@ export default function Footer() {
               <li><ApostarAgoraLink /></li>
               <li><Link to="/resultados" className="hover:text-primary-accent transition-colors">Últimos Resultados</Link></li>
               <li><Link to="/regras" className="hover:text-primary-accent transition-colors">Como Jogar</Link></li>
+              <li><a href="mailto:suporte@megacripto.com" className="hover:text-primary-accent transition-colors">Suporte</a></li>
             </ul>
           </div>
 
@@ -80,18 +81,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Col 4 */}
-          <div>
-            <h4 className="font-heading font-bold text-text-primary mb-4 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-primary-accent" /> Suporte (SAC)
-            </h4>
-            <p className="text-sm text-text-secondary mb-4 leading-relaxed">
-              Dúvidas ou problemas com suas transações PIX ou regras de apuração?
-            </p>
-            <a href="mailto:suporte@megacripto.app" className="inline-block px-4 py-2 bg-bg-base border border-border-subtle hover:border-primary-accent text-sm text-text-primary rounded-lg transition-colors shadow-sm">
-              suporte@megacripto.app
-            </a>
-          </div>
 
         </div>
 

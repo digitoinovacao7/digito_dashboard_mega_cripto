@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Loader2, ExternalLink, Trophy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getUserStats } from '../api/bridge';
@@ -28,8 +29,18 @@ export default function MyBetsPage() {
             <p className="text-text-secondary text-sm">Carregando suas apostas...</p>
           </div>
         ) : data?.tickets.length === 0 ? (
-          <div className="bg-bg-surface/50 border border-border-subtle rounded-2xl p-6 text-center text-text-secondary">
-            Você ainda não fez nenhuma aposta.
+          <div className="bg-bg-surface/50 border border-border-subtle rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+            <Trophy className="w-12 h-12 text-accent-gold/50 mb-4" />
+            <h2 className="text-xl font-bold font-heading mb-2 text-text-primary">Nenhuma aposta encontrada</h2>
+            <p className="text-text-secondary mb-6 max-w-sm">
+              Você ainda não fez nenhuma aposta. Que tal tentar a sorte no próximo concurso?
+            </p>
+            <Link
+              to="/jogar"
+              className="bg-cta-primary hover:bg-cta-primary/80 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-cta-primary/20 cursor-pointer"
+            >
+              Jogar Agora
+            </Link>
           </div>
         ) : (
           data?.tickets.map((ticket) => (
@@ -112,4 +123,3 @@ export default function MyBetsPage() {
     </div>
   );
 }
-

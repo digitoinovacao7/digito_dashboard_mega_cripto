@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState } from "react";
+import { Toaster } from "react-hot-toast";
 import HomePage from "./pages/HomePage";
 import GameInterface from "./pages/GameInterface";
 import UserDash from "./pages/UserDash";
@@ -123,6 +124,19 @@ function AppContent() {
   return (
     <Router>
       <div className="min-h-screen pt-16 flex flex-col font-body text-slate-200 relative">
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            error: {
+              style: {
+                background: '#440000',
+                color: '#ffcccc',
+                border: '1px solid #990000'
+              },
+            },
+          }}
+        />
         <Navbar onMenuClick={() => setIsMenuOpen(true)} />
         <MegaMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { QrCode, Wand2, ShieldCheck, LockIcon, CheckCircle2, Loader2, KeyRound, ExternalLink, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -22,7 +23,7 @@ export default function GameInterface() {
   const [drawStatus, setDrawStatus] = useState<DrawStatus | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [confirmedSolanaTx, setConfirmedSolanaTx] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isRegisteringOnSolana, setIsRegisteringOnSolana] = useState(false);
   // PIX key
   const [showPixModal, setShowPixModal] = useState(false);
   const [pixKey, setPixKey] = useState(() => localStorage.getItem('mega_pix_key') || '');
@@ -53,9 +54,12 @@ export default function GameInterface() {
       try {
         const status = await getPaymentStatus(txId);
         if (status.confirmed) {
-          setPaymentConfirmed(true);
-          setConfirmedSolanaTx(status.solana_tx || null);
-          if (pollingRef.current) clearInterval(pollingRef.current);
+          setIsRegisteringOnSolana(true);
+          if (status.solana_tx) {
+            setPaymentConfirmed(true);
+            setConfirmedSolanaTx(status.solana_tx || null);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+          }
         }
       } catch { /* ignora erros de rede temporários */ }
     }, 3000);
@@ -106,7 +110,7 @@ export default function GameInterface() {
       setShowPixModal(false);
       await proceedToCheckout();
     } catch {
-      alert('Erro ao salvar chave PIX. Tente novamente.');
+      toast.error('Erro ao salvar chave PIX. Tente novamente.');
     } finally {
       setIsSavingPixKey(false);
     }
@@ -126,7 +130,6 @@ export default function GameInterface() {
        finalBets.push([...selectedNumbers].sort((a,b) => a-b));
     }
     if (!user || finalBets.length === 0) return;
-    setError(null);
     setIsRequestingPix(true);
     try {
       const response = await startBet({
@@ -140,7 +143,7 @@ export default function GameInterface() {
       }
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'Houve um erro ao processar o PIX. Tente novamente.';
-      setError(msg);
+      toast.error(msg);
     } finally {
       setIsRequestingPix(false);
     }
@@ -435,16 +438,19 @@ export default function GameInterface() {
           </div>
 
           {/* Mensagem de erro */}
-          {error && (
-            <div className="mb-4 p-3 bg-feedback-error/10 border border-feedback-error/30 rounded-xl text-feedback-error text-sm font-medium flex items-start gap-2">
-              <X className="w-4 h-4 mt-0.5 shrink-0" />
-              {error}
-            </div>
-          )}
 
           {/* Seção do Botão ou Exibição do PIX */}
           <div className="mt-2 transition-all relative">
-            {qrCode ? (
+            {isRequestingPix ? (
+              <div className="bg-bg-surface/80 p-6 rounded-2xl border border-border-subtle animate-pulse text-center">
+                <div className="bg-slate-700/50 h-7 w-3/4 mx-auto rounded-lg mb-4"></div>
+                <div className="bg-slate-700/50 p-4 rounded-xl mx-auto w-48 h-48 mb-4"></div>
+                <div className="bg-slate-700/50 h-10 w-32 mx-auto rounded-lg"></div>
+                <div className="mt-4 pt-4 border-t border-border-subtle">
+                  <div className="bg-slate-700/50 h-4 w-1/2 mx-auto rounded-lg"></div>
+                </div>
+              </div>
+            ) : qrCode ? (
                <div className="bg-bg-surface/80 p-6 rounded-2xl border border-cta-primary animate-fade-in text-center">
                   <h4 className="font-heading font-bold text-cta-primary mb-2">Escaneie para Pagar</h4>
                   <div className="bg-white p-4 rounded-xl mx-auto w-fit mb-4 mix-blend-screen shadow-lg shadow-cta-primary/20">
@@ -456,7 +462,9 @@ export default function GameInterface() {
                   </button>
                   <div className="mt-4 pt-4 border-t border-border-subtle text-xs text-primary-accent font-mono flex items-center justify-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Aguardando confirmação do pagamento...
+                    {isRegisteringOnSolana
+                      ? 'Registrando na blockchain...'
+                      : 'Aguardando confirmação do pagamento...'}
                   </div>
                </div>
             ) : (
@@ -486,12 +494,12 @@ export default function GameInterface() {
               </button>
             )}
             
-            {!qrCode && !isBetsClosed && (
+            {!qrCode && !isRequestingPix && !isBetsClosed && (
               <p className="flex justify-center items-center gap-2 mt-4 text-xs text-text-disabled">
                 <ShieldCheck className="w-4 h-4" /> 100% Garantido em Smart Contract
               </p>
             )}
-            {!pixKey && !qrCode && user && !isBetsClosed && (
+            {!pixKey && !qrCode && !isRequestingPix && user && !isBetsClosed && (
               <p className="flex justify-center items-center gap-2 mt-2 text-xs text-primary-accent/70">
                 <KeyRound className="w-3 h-3" /> Chave PIX não cadastrada – será solicitada no checkout
               </p>
