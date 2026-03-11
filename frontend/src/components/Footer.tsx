@@ -1,5 +1,25 @@
 import { BookOpen, ShieldCheck, Scale, AlertTriangle, Github, Twitter, MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+
+function ApostarAgoraLink() {
+  const { user, login } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    if (user) {
+      navigate('/jogar');
+    } else {
+      login();
+    }
+  };
+
+  return (
+    <button onClick={handleClick} className="hover:text-primary-accent transition-colors text-left">
+      Apostar Agora
+    </button>
+  );
+}
 
 export default function Footer() {
   return (
@@ -42,7 +62,7 @@ export default function Footer() {
               <BookOpen className="w-4 h-4 text-primary-accent" /> Plataforma
             </h4>
             <ul className="space-y-3 text-sm text-text-secondary">
-              <li><Link to="/jogar" className="hover:text-primary-accent transition-colors">Apostar Agora</Link></li>
+              <li><ApostarAgoraLink /></li>
               <li><Link to="/resultados" className="hover:text-primary-accent transition-colors">Últimos Resultados</Link></li>
               <li><Link to="/regras" className="hover:text-primary-accent transition-colors">Como Jogar</Link></li>
             </ul>

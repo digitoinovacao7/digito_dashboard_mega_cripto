@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { useState } from "react";
 import HomePage from "./pages/HomePage";
 import GameInterface from "./pages/GameInterface";
 import UserDash from "./pages/UserDash";
@@ -12,34 +13,40 @@ import PrivacyPage from "./pages/PrivacyPage";
 import ResponsibleGamingPage from "./pages/ResponsibleGamingPage";
 import Footer from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
+import MegaMenu from "./components/MegaMenu";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
+import { Menu } from "lucide-react";
 
-function Navbar() {
+function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, isAdmin, login, logout } = useAuth();
 
   return (
-    <nav className="fixed top-0 w-full bg-brand-bg/80 backdrop-blur-md border-b border-white/10 z-50">
+    <nav className="fixed top-0 w-full bg-bg-base/80 backdrop-blur-md border-b border-border-subtle z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
-            <Link
-              to="/"
-              className="text-xl font-heading font-bold text-white flex items-center gap-2"
-            >
-              <span className="text-brand-accent">✦</span> MegaCripto
+            <Link to="/" className="flex items-center gap-3">
+               <div className="w-8 h-8 bg-gradient-to-br from-primary-accent to-accent-magenta rounded-lg flex items-center justify-center p-0.5 shadow-[0_0_10px_rgba(0,255,204,0.2)]">
+                 <div className="w-full h-full bg-bg-base rounded-md flex items-center justify-center">
+                   <div className="w-3 h-3 bg-primary-accent rounded-sm rotate-45"></div>
+                 </div>
+               </div>
+               <div>
+                  <h1 className="text-lg font-heading font-black tracking-tight text-white leading-tight">MEGA<br/><span className="text-primary-accent">CRIPTO</span></h1>
+               </div>
             </Link>
           </div>
           <div className="hidden md:block">
             <div className="ml-10 flex items-center space-x-8">
               <Link
                 to="/resultados"
-                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="text-text-secondary hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Resultados
               </Link>
               <Link
                 to="/regras"
-                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="text-text-secondary hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Como Jogar
               </Link>
@@ -47,14 +54,14 @@ function Navbar() {
                 <>
                   <Link
                     to="/jogar"
-                    className="text-brand-accent hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors font-bold"
+                    className="text-cta-primary hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors font-bold"
                   >
                     Jogar Agora
                   </Link>
 
                   <Link
                     to="/minhas-apostas"
-                    className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                    className="text-text-secondary hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                   >
                     Minhas Apostas
                   </Link>
@@ -63,9 +70,9 @@ function Navbar() {
               {isAdmin && (
                 <Link
                   to="/admin-secret"
-                  className="text-brand-web3 hover:text-brand-web3/80 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-accent-gold hover:text-accent-gold/80 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  Painel de Controle
+                  Admin
                 </Link>
               )}
               {user ? (
@@ -74,7 +81,7 @@ function Navbar() {
                     <span className="text-xs text-slate-400 font-mono">
                       {user.email}
                     </span>
-                    <span className="text-xs text-brand-pix font-mono font-bold tracking-wider">
+                    <span className="text-xs text-primary-accent font-mono font-bold tracking-wider">
                       {user.pubkey.slice(0, 4)}...{user.pubkey.slice(-4)}
                     </span>
                   </div>
@@ -88,12 +95,17 @@ function Navbar() {
               ) : (
                 <button
                   onClick={login}
-                  className="bg-brand-pix hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-brand-pix/20 ml-2 cursor-pointer"
+                  className="bg-cta-primary hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-cta-primary/20 ml-2 cursor-pointer"
                 >
-                  Entrar com Google
+                  Entrar
                 </button>
               )}
             </div>
+          </div>
+          <div className="md:hidden">
+            <button onClick={onMenuClick} className="p-2 text-text-secondary">
+              <Menu className="w-6 h-6" />
+            </button>
           </div>
         </div>
       </div>
@@ -102,10 +114,13 @@ function Navbar() {
 }
 
 function AppContent() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <Router>
       <div className="min-h-screen pt-16 flex flex-col font-body text-slate-200 relative">
-        <Navbar />
+        <Navbar onMenuClick={() => setIsMenuOpen(true)} />
+        <MegaMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
           <Routes>
             <Route path="/" element={<HomePage />} />

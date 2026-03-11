@@ -1,5 +1,4 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
-import * as web3 from '@solana/web3.js';
+import { Connection, clusterApiUrl } from '@solana/web3.js';
 
 // No Frontend: Para testar com dinheiro de mentira usamos 'devnet'
 // Quando for para valer com dinheiro real (produção), você mudará para 'mainnet-beta'
