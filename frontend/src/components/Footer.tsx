@@ -1,4 +1,4 @@
-import { BookOpen, ShieldCheck, Scale, AlertTriangle, Github, Twitter, MessageCircle } from 'lucide-react';
+import { BookOpen, Scale, AlertTriangle, Github, Twitter, MessageCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
