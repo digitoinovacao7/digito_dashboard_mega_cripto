@@ -155,3 +155,55 @@ export const triggerDraw = async (): Promise<AdminStats> => {
     throw error;
   }
 };
+
+// ──────────────────────────────────────────────────────────────
+//  NOVOS: Timer real, encerramento de apostas, PIX key, polling
+// ──────────────────────────────────────────────────────────────
+
+export interface DrawStatus {
+  betsOpen: boolean;
+  nextDrawAt: string | null;  // ISO 8601
+  msUntilDraw: number | null; // ms restantes (calculado no servidor)
+  currentDrawId: string;
+}
+
+export const getDrawStatus = async (): Promise<DrawStatus> => {
+  const response = await axios.get(`${API_URL}/draw/status`);
+  return response.data;
+};
+
+export const setNextDraw = async (nextDrawAt: string): Promise<{ok: boolean}> => {
+  const response = await axios.post(`${API_URL}/admin/set-next-draw`, { next_draw_at: nextDrawAt });
+  return response.data;
+};
+
+export const toggleBets = async (): Promise<{bets_open: boolean}> => {
+  const response = await axios.post(`${API_URL}/admin/toggle-bets`);
+  return response.data;
+};
+
+export interface PaymentStatus {
+  tx_id: string;
+  confirmed: boolean;
+  solana_tx?: string;
+}
+
+export const getPaymentStatus = async (txId: string): Promise<PaymentStatus> => {
+  const response = await axios.get(`${API_URL}/payment/status/${txId}`);
+  return response.data;
+};
+
+export interface RegisterPixKeyOptions {
+  email: string;
+  pixKey: string;
+  pixKeyType: 'email' | 'cpf' | 'phone' | 'random';
+}
+
+export const registerPixKey = async (opts: RegisterPixKeyOptions): Promise<{ok: boolean}> => {
+  const response = await axios.post(`${API_URL}/user/register-pix`, {
+    email: opts.email,
+    pix_key: opts.pixKey,
+    pix_key_type: opts.pixKeyType,
+  });
+  return response.data;
+};

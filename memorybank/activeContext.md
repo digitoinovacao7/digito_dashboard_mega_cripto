@@ -1,18 +1,15 @@
 # Active Context
 
 ## Foco Atual
-Finalização da ponte de integração entre o Frontend React e o Backend Rust (Endpoints de Status, Pagamento e Webhooks), e garantir que as apostas pertençam corretamente a um "Concurso / Sorteio" específico (`draw_id`).
+Finalização da primeira versão estável (V1) da Loteria Web3 focada em funcionalidades críiticas de retenção, automatização de sorteio, UX e infraestrutura on-chain.
 
-## Últimas Modificações
-- Regras de negócio de Apostas Múltiplas (15 a 20 números) implementadas na `GameInterface.tsx` com Dropdown de seleção dinâmico e cálculo de probabilidade e preço (R$ 3,50 até R$ 54.264,00).
-- Backend (Axum) aprimorado com estado em memória (`AppState`) para simular armazenamento do banco de dados enquanto gerencia a contabilidade de conexões concorrentes.
-- Criação dos endpoints reais `GET /admin/stats` e `GET /user/stats` no Rust, devolvendo dados dinâmicos do `AppState` gerenciado pelo Mutex.
-- Frontend limpo de códigos falsos (Mocks): O Painel Administrativo agora reflete apenas transações reais processadas e conectadas pelo Backend (Axios), e configurações inúteis (como edição de percentual de prêmio) foram removidas para garantir auditoria Web3.
-- Remoção de links redundantes como "Meu Painel" no Header, unificando a navegação em "Minhas Apostas".
-- **Home Page**: Renderização condicional adicionada à seção de "Últimos Resultados" para ocultar dados mockados caso nenhum sorteio tenha sido realizado ainda (quando `currentDrawId <= 1`).
-- **Integração de Sorteio (Draw ID)**: Backend atualizado para transmitir o `current_draw_id` do painel administrativo até o webhook. O Frontend no GameInterface agora exibe o identificador do "Concurso Atual" do qual o usuário está participando, e toda intenção de PIX amarra a aposta de volta a esse concurso.
+## Últimas Modificações (Sessão Atual)
+- **Temporizador Real e Encerramento de Segurança:** Construção e integração do endpoint `GET /draw/status` no `HomePage.tsx` e `GameInterface.tsx`. Agora a plataforma reconhece o encerramento do sorteio, bloqueando visualmente e funcionalmente (no backend) o recebimento de novas intenções de aposta se o relógio zerar. Admin pode definir a data/hora via `POST /admin/set-next-draw`.
+- **Registro Real de Chave PIX:** Ao invés de usar o e-mail obrigatoriamente, a plataforma requer do usuário no primeiro checkout a criação de uma `PIX Key`, armazenando a mesma via `POST /user/register-pix`. O Payout automático cruza os ganhadores e os envia o dinheiro pela sua respectiva chave via API real do Mercado Pago (`/v1/account/bank_transfers`).
+- **Verificação via Polling de Sucesso de PIX:** Implementado mecanismo de escuta no Front-End (`GameInterface.tsx` via `setInterval` no endpoint `GET /payment/status/:tx_id`) garantindo que assim que o webhook receber o status `approved` do Mercado Pago e executar a transação na blockchain (`register_bet`), a tela atualiza com sucesso emitindo link direto da Solana Explorer.
+- **Transação On-chain Pura:** Refatorado erro de versionamento pesado do `anchor-client` movendo a assinatura da instrução de smart-contract para serialização via `borsh` nativa da instrução Anchor `RpcClient::send_and_confirm_transaction(tx)`.
 
-## Próximos Passos Imediatos
-1. Configurar credenciais reais da API do Mercado Pago no Rust para que a função `/create-payment` gere um objeto real com um QR Code Pix escaneável pelo aplicativo do banco.
-2. Substituir lógica mock do contrato Anchor no webhook do backend (`process_bet_on_chain`) pela submissão e assinatura real na rede Solana usando o package `anchor-client` e uma IDL válida.
-3. Iniciar a estrutura de testes de integração ponta a ponta (E2E), criando uma aposta no Frontend, efetuando o pagamento e escutando a mudança de tela via WebSockets ou Polling.
+## Próximos Passos Imediatos (Pós V1 / Próxima Sessão)
+1. **Agendador (Cloud Scheduler):** Configurar gatilho externo repetitivo no GCP ou AWS para chamar `POST /admin/trigger-draw` nos dias/horários estipulados de sorteio sem depender do botão físico de Admin.
+2. **Implementar "Jogo Responsável" (KYC e Autoexclusão):** Criar fluxos de travamento de transações ou desativação de Login para auxiliar na obtenção da licença SPA e conformidade no Brasil (como documentado em `checkListDoc.md`).
+3. **Chainlink VRF (Sorteio Auditável Real):** Substituir módulo RNG nativo `rand::thread_rng()` do Rust no encerramento pelo consumo atestado e verificável de Oráculos (Chainlink) gravando a semente resultante no banco.

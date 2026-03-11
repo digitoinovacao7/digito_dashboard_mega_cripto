@@ -171,6 +171,45 @@ struct AdminStats {
     current_draw_id: String,
 }
 
+/// Status público do concurso, consumido pelo frontend
+#[derive(Serialize, Clone)]
+struct DrawStatus {
+    /// Se as apostas estão abertas ou encerradas
+    #[serde(rename = "betsOpen")]
+    bets_open: bool,
+    /// Data/hora do próximo sorteio em ISO 8601 (ex: "2026-03-15T20:00:00Z")
+    #[serde(rename = "nextDrawAt")]
+    next_draw_at: Option<String>,
+    /// Milissegundos até o sorteio (calculado no servidor)
+    #[serde(rename = "msUntilDraw")]
+    ms_until_draw: Option<i64>,
+    #[serde(rename = "currentDrawId")]
+    current_draw_id: String,
+}
+
+/// Payload para o admin definir o próximo sorteio
+#[derive(Deserialize)]
+struct SetNextDrawPayload {
+    /// ISO 8601: "2026-03-15T20:00:00Z"
+    next_draw_at: String,
+}
+
+/// Payload para registrar chave PIX do usuário
+#[derive(Deserialize)]
+struct RegisterPixKeyPayload {
+    email: String,
+    pix_key: String,
+    pix_key_type: String, // "email", "cpf", "phone", "random"
+}
+
+/// Status de um pagamento específico (para polling do frontend)
+#[derive(Serialize)]
+struct PaymentStatusResponse {
+    tx_id: String,
+    confirmed: bool,
+    solana_tx: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct UserTicket {
     id: String,
@@ -254,8 +293,13 @@ struct AppState {
     user_tickets: Arc<Mutex<HashMap<String, Vec<UserTicket>>>>,
     config: Arc<Mutex<Config>>,
     draw_results: Arc<Mutex<Vec<DrawResult>>>,
-    /// Jackpot acumulado de concursos anteriores sem ganhador na faixa máxima
     jackpot_accumulated: Arc<Mutex<f64>>,
+    /// Se as apostas estão abertas (true) ou encerradas (false)
+    bets_open: Arc<Mutex<bool>>,
+    /// Data/hora do próximo sorteio (ISO 8601 UTC)
+    next_draw_at: Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
+    /// Chaves PIX registradas por email de usuário
+    user_pix_keys: Arc<Mutex<HashMap<String, (String, String)>>>, // email → (pix_key, pix_key_type)
 }
 
 // ─────────────────────────────────────────────────────────
@@ -308,6 +352,9 @@ async fn main() {
             },
         ])),
         jackpot_accumulated: Arc::new(Mutex::new(0.0)),
+        bets_open: Arc::new(Mutex::new(true)),
+        next_draw_at: Arc::new(Mutex::new(None)),
+        user_pix_keys: Arc::new(Mutex::new(HashMap::new())),
     });
 
     let cors = CorsLayer::new()
@@ -324,6 +371,12 @@ async fn main() {
         .route("/admin/config",            get(get_config).post(update_config))
         .route("/results",                 get(get_results))
         .route("/admin/trigger-draw",      post(trigger_draw))
+        // ───── Novos endpoints V1 ────────────────────────────
+        .route("/draw/status",             get(get_draw_status))
+        .route("/admin/set-next-draw",     post(set_next_draw))
+        .route("/admin/toggle-bets",       post(toggle_bets))
+        .route("/payment/status/:tx_id",   get(get_payment_status))
+        .route("/user/register-pix",       post(register_pix_key))
         .layer(cors)
         .with_state(state);
 
@@ -382,6 +435,136 @@ fn count_matches(bet_numbers: &[u8], drawn_numbers: &[u8]) -> u8 {
 }
 
 // ─────────────────────────────────────────────────────────
+//  NOVO HANDLER: status público do concurso (timer + bets_open)
+// ─────────────────────────────────────────────────────────
+
+async fn get_draw_status(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let mut bets_open = *state.bets_open.lock().unwrap();
+    let next_draw_at_dt = *state.next_draw_at.lock().unwrap();
+    let current_draw_id = state.admin_stats.lock().unwrap().current_draw_id.clone();
+
+    let (next_draw_at_str, ms_until_draw) = match next_draw_at_dt {
+        Some(dt) => {
+            let now = chrono::Utc::now();
+            let ms = (dt - now).num_milliseconds();
+            // Auto-encerra apostas quando o tempo chegar a 0
+            if ms <= 0 && bets_open {
+                *state.bets_open.lock().unwrap() = false;
+                bets_open = false;
+                println!("🔒  Apostas encerradas automaticamente (próximo sorteio atingido)");
+            }
+            (Some(dt.to_rfc3339()), Some(ms.max(0)))
+        }
+        None => (None, None),
+    };
+
+    (StatusCode::OK, Json(DrawStatus {
+        bets_open,
+        next_draw_at: next_draw_at_str,
+        ms_until_draw,
+        current_draw_id,
+    }))
+}
+
+// ─────────────────────────────────────────────────────────
+//  NOVO HANDLER: admin define data/hora do próximo sorteio
+// ─────────────────────────────────────────────────────────
+
+async fn set_next_draw(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<SetNextDrawPayload>,
+) -> impl IntoResponse {
+    use chrono::DateTime;
+    match DateTime::parse_from_rfc3339(&payload.next_draw_at) {
+        Ok(dt) => {
+            *state.next_draw_at.lock().unwrap() = Some(dt.with_timezone(&chrono::Utc));
+            *state.bets_open.lock().unwrap() = true; // Reabre as apostas ao definir novo sorteio
+            println!("📅  Próximo sorteio agendado para: {}", dt);
+            (StatusCode::OK, Json(serde_json::json!({
+                "ok": true,
+                "next_draw_at": payload.next_draw_at
+            })))
+        }
+        Err(e) => {
+            (StatusCode::BAD_REQUEST, Json(serde_json::json!({
+                "error": format!("Data inválida. Use ISO 8601 (ex: 2026-03-15T20:00:00Z). Erro: {}", e)
+            })))
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────
+//  NOVO HANDLER: admin abre/fecha apostas manualmente
+// ─────────────────────────────────────────────────────────
+
+async fn toggle_bets(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let mut bets_open = state.bets_open.lock().unwrap();
+    *bets_open = !*bets_open;
+    let status = if *bets_open { "abertas" } else { "encerradas" };
+    println!("🎰  Apostas {}", status);
+    (StatusCode::OK, Json(serde_json::json!({ "bets_open": *bets_open })))
+}
+
+// ─────────────────────────────────────────────────────────
+//  NOVO HANDLER: status de pagamento (polling do frontend)
+// ─────────────────────────────────────────────────────────
+
+async fn get_payment_status(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(tx_id): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    // Se o tx_id NÃO está mais no pending_bets, significa que foi confirmado
+    let is_pending = {
+        let bets = state.pending_bets.lock().unwrap();
+        bets.contains_key(&tx_id)
+    };
+
+    if is_pending {
+        return (StatusCode::OK, Json(PaymentStatusResponse {
+            tx_id: tx_id.clone(),
+            confirmed: false,
+            solana_tx: None,
+        }));
+    }
+
+    // Busca o hash da Solana nos tickets do usuário
+    let solana_tx = {
+        let user_map = state.user_tickets.lock().unwrap();
+        user_map.values()
+            .flat_map(|tickets| tickets.iter())
+            .find(|t| t.id.starts_with(&tx_id))
+            .and_then(|t| t.solana_tx.clone())
+    };
+
+    (StatusCode::OK, Json(PaymentStatusResponse {
+        tx_id,
+        confirmed: true,
+        solana_tx,
+    }))
+}
+
+// ─────────────────────────────────────────────────────────
+//  NOVO HANDLER: usuário registra sua chave PIX
+// ─────────────────────────────────────────────────────────
+
+async fn register_pix_key(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RegisterPixKeyPayload>,
+) -> impl IntoResponse {
+    let mut pix_keys = state.user_pix_keys.lock().unwrap();
+    pix_keys.insert(
+        payload.email.clone(),
+        (payload.pix_key.clone(), payload.pix_key_type.clone()),
+    );
+    println!("🔑  PIX key registrada: {} ({}) → {}", payload.email, payload.pix_key_type, payload.pix_key);
+    (StatusCode::OK, Json(serde_json::json!({
+        "ok": true,
+        "email": payload.email,
+        "pix_key": payload.pix_key
+    })))
+}
+
+// ─────────────────────────────────────────────────────────
 //  HANDLER: criar pagamento PIX (Mercado Pago real)
 // ─────────────────────────────────────────────────────────
 
@@ -389,6 +572,14 @@ async fn create_payment_intent(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<BetPayload>,
 ) -> impl IntoResponse {
+    // ── Verifica se as apostas estão abertas ────────────────────────────────
+    let bets_open = *state.bets_open.lock().unwrap();
+    if !bets_open {
+        return (StatusCode::LOCKED, Json(serde_json::json!({
+            "error": "As apostas para este concurso já foram encerradas. Aguarde o próximo sorteio."
+        }))).into_response();
+    }
+
     let bets = &payload.bets;
     let user_email = payload.payer_email.clone().unwrap_or_else(|| "cliente@megacripto.com.br".to_string());
     let user_cpf = payload.payer_cpf.clone().unwrap_or_else(|| "00000000000".to_string());
@@ -845,36 +1036,34 @@ async fn trigger_draw(State(state): State<Arc<AppState>>) -> impl IntoResponse {
             }
 
             // ── ITEM 4: Pagar os ganhadores via PIX (Mercado Pago) ──────────────
-            // Roda em background para não bloquear a resposta
             let winners_clone = winners.clone();
             let prize_clone = prize_per_winner;
             let draw_id_clone = draw_id.clone();
-            let user_map_arc = Arc::clone(&state.user_tickets);
+            let pix_keys_arc = Arc::clone(&state.user_pix_keys);
 
             tokio::spawn(async move {
                 for winner_email in winners_clone {
-                    // Busca a chave PIX do ganhador (armazenada como `pub_key` no ticket)
-                    let _pix_key = {
-                        let map = user_map_arc.lock().unwrap();
-                        map.get(&winner_email)
-                           .and_then(|tickets| tickets.first())
-                           .map(|t| t.id.clone()) // Em produção: campo `pix_key` dedicado
+                    // Busca a chave PIX real registrada pelo usuário
+                    let (pix_key, pix_key_type) = {
+                        let keys = pix_keys_arc.lock().unwrap();
+                        keys.get(&winner_email)
+                           .map(|(k, t)| (k.clone(), t.clone()))
+                           .unwrap_or_else(|| (winner_email.clone(), "email".to_string()))
                     };
 
-                    // Em produção real, pix_key viria do UserAccount on-chain (campo pix_key do `initialize_user`)
-                    // Por ora, usamos o email como chave PIX (tipo EMAIL no MP)
                     if let Err(e) = pay_winner_via_pix(
-                        &winner_email,       // chave PIX tipo e-mail
-                        "email",
+                        &pix_key,
+                        &pix_key_type,
                         prize_clone,
                         &draw_id_clone,
                     ).await {
                         eprintln!("❌  Payout falhou para {}: {:?}", winner_email, e);
                     } else {
-                        println!("💸  Payout OK para {} - R${:.2}", winner_email, prize_clone);
+                        println!("💸  Payout OK para {} (chave {}: {}) - R${:.2}", winner_email, pix_key_type, pix_key, prize_clone);
                     }
                 }
             });
+
         }
     }
 

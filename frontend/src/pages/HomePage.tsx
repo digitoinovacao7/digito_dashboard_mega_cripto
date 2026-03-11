@@ -1,43 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowRight, CheckCircle2, Trophy, Clock, UserPlus, Gift, TrendingUp, Search, PlayCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CryptoTicker from '../components/CryptoTicker';
-import { getAdminStats, type AdminStats } from '../api/bridge';
+import { getAdminStats, getDrawStatus, type AdminStats, type DrawStatus } from '../api/bridge';
 
 export default function HomePage() {
-  const [timeLeft, setTimeLeft] = useState(15); // Em segundos para demonstração
-  const [isDrawing, setIsDrawing] = useState(false);
+  const [msLeft, setMsLeft] = useState<number | null>(null);
+  const [drawStatus, setDrawStatus] = useState<DrawStatus | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [totalBets, setTotalBets] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Carrega estatísticas do admin
   useEffect(() => {
     getAdminStats().then(data => {
       setStats(data);
       setTotalBets(data.totalTickets);
-    }).catch(err => console.error("Error loading home stats", err));
+    }).catch(() => {});
   }, []);
 
+  // Carrega status do sorteio e sincroniza o timer
   useEffect(() => {
-    if (timeLeft <= 0) {
-      setIsDrawing(true);
-      return;
-    }
+    const sync = () => {
+      getDrawStatus().then(status => {
+        setDrawStatus(status);
+        setMsLeft(status.msUntilDraw);
+      }).catch(() => {});
+    };
+    sync();
+    // Ressincroniza com o servidor a cada 30s para evitar drift
+    const syncTimer = setInterval(sync, 30_000);
+    return () => clearInterval(syncTimer);
+  }, []);
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-      // Simula aumento de apostas nos ultimos segundos
-      if (Math.random() > 0.5) setTotalBets(prev => prev + Math.floor(Math.random() * 3));
+  // Decrementa o timer localmente a cada 1s
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (msLeft === null || msLeft <= 0) return;
+    intervalRef.current = setInterval(() => {
+      setMsLeft(prev => (prev !== null && prev > 1000 ? prev - 1000 : 0));
     }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [msLeft !== null && msLeft <= 0 ? 'done' : 'running']);
 
-    return () => clearInterval(timer);
-  }, [timeLeft]);
+  const isDrawing = !drawStatus?.betsOpen || (msLeft !== null && msLeft <= 0);
 
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
+  const formatMs = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+
 
   return (
     <div className="space-y-24">
@@ -79,7 +94,12 @@ export default function HomePage() {
               
               {!isDrawing ? (
                 <div className="text-5xl md:text-6xl font-mono font-black text-primary-accent tracking-tighter">
-                  {formatTime(timeLeft)}
+                  {msLeft !== null && msLeft > 0
+                    ? formatMs(msLeft)
+                    : drawStatus?.nextDrawAt
+                      ? <span className="text-2xl text-text-secondary">carregando...</span>
+                      : <span className="text-2xl text-text-secondary">—</span>
+                  }
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3 animate-fade-in">
@@ -91,6 +111,7 @@ export default function HomePage() {
                    </Link>
                 </div>
               )}
+
             </div>
 
           </div>
