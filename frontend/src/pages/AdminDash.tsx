@@ -9,6 +9,7 @@ import UserManagement from '../components/admin/UserManagement';
 import FinancialMonitoring from '../components/admin/FinancialMonitoring';
 import PlatformSettings from '../components/admin/PlatformSettings';
 import NextDrawSettings from '../components/admin/NextDrawSettings';
+import SupportTicketManagement from '../components/admin/SupportTicketManagement';
 import Tabs from '../components/admin/Tabs';
 
 export default function AdminDash() {
@@ -197,6 +198,10 @@ export default function AdminDash() {
     {
       label: 'Configurações',
       content: <PlatformSettings />
+    },
+    {
+      label: 'Suporte',
+      content: <SupportTicketManagement />
     }
   ];
 

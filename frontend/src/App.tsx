@@ -12,6 +12,7 @@ import LiveDrawPage from "./pages/LiveDrawPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ResponsibleGamingPage from "./pages/ResponsibleGamingPage";
+import SupportPage from "./pages/SupportPage";
 import Footer from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
 import MegaMenu from "./components/MegaMenu";
@@ -118,11 +119,25 @@ function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
 import LoginModal from "./components/LoginModal";
 
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function AppContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen pt-16 flex flex-col font-body text-slate-200 relative">
         <Toaster
           position="top-center"
@@ -149,6 +164,7 @@ function AppContent() {
             <Route path="/jogo-responsavel" element={<ResponsibleGamingPage />} />
             <Route path="/live-draw" element={<LiveDrawPage />} />
             <Route path="/verificar-idade" element={<VerificarIdadePage />} />
+            <Route path="/suporte" element={<SupportPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/jogar" element={<GameInterface />} />

@@ -65,7 +65,7 @@ export default function Footer() {
               <li><ApostarAgoraLink /></li>
               <li><Link to="/resultados" className="hover:text-primary-accent transition-colors">Últimos Resultados</Link></li>
               <li><Link to="/regras" className="hover:text-primary-accent transition-colors">Como Jogar</Link></li>
-              <li><a href="mailto:suporte@megacripto.com" className="hover:text-primary-accent transition-colors">Suporte</a></li>
+              <li><Link to="/suporte" className="hover:text-primary-accent transition-colors">Suporte</Link></li>
             </ul>
           </div>
 

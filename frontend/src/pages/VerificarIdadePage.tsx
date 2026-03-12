@@ -3,7 +3,12 @@ import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
 const VerificarIdadePage: React.FC = () => {
-  const { completeKyc, isVerified, isLoading } = useAuth();
+  const { completeKyc, isVerified, isLoading, isAdmin } = useAuth();
+
+  // Redirect admins as they don't need KYC
+  if (isAdmin) {
+    return <Navigate to="/admin-secret" replace />;
+  }
 
   // If the user is already verified (e.g., after clicking approve), redirect them.
   if (isVerified) {

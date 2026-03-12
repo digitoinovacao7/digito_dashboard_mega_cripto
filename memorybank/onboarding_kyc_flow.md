@@ -5,31 +5,20 @@ Parte 1: Backend (Rust)
 1.1. Variáveis de Ambiente para Controle e Integração
 No seu sistema de configuração (ex: arquivo .env), adicione as seguintes variáveis:
 
-
-Recolher
-Salvar
-Copiar
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
 # .env
 
 # Controla o modo de operação do KYC
-KYC_MODE="SIMULATED" 
+
+KYC_MODE="SIMULATED"
+
 # Valores possíveis: "SIMULATED", "REAL"
 
 # Chave de API da BigData Corp (deixar em branco por enquanto)
+
 BIGDATACORP_API_KEY=""
 
 # URL do endpoint de validação da BigData Corp
+
 BIGDATACORP_API_URL="https://api.bigdatacloud.net/data/cpf-data" # Exemplo, verificar URL correta na documentação deles
 Sua aplicação Rust deve carregar estas variáveis no início.
 
@@ -58,101 +47,34 @@ Copiar
 5
 ⌄
 {
-  "fullName": "João da Silva",
-  "taxId": "12345678900",
-  "birthDate": "1990-05-15"
+"fullName": "João da Silva",
+"taxId": "12345678900",
+"birthDate": "1990-05-15"
 }
 Lógica do Endpoint em Rust (Pseudocódigo Detalhado):
 rust
 
-Recolher
-Copiar
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
-35
-36
-37
-38
-39
-40
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-⌄
-⌄
-⌄
-⌄
-⌄
-⌄
-⌄
-⌄
 ⌄
 // Estrutura para receber os dados do frontend
 struct KycRequest {
-    simulationType: Option<String>, // Opcional, usado apenas em modo simulado
-    fullName: Option<String>,
-    taxId: Option<String>,
-    birthDate: Option<String>,
+simulationType: Option<String>, // Opcional, usado apenas em modo simulado
+fullName: Option<String>,
+taxId: Option<String>,
+birthDate: Option<String>,
 }
 
 async fn handle_kyc_verification(request_body: KycRequest) -> Result<(), ApiError> {
-    let kyc_mode = std::env::var("KYC_MODE").unwrap_or("SIMULATED".to_string());
+let kyc_mode = std::env::var("KYC_MODE").unwrap_or("SIMULATED".to_string());
 
     if kyc_mode == "REAL" {
         // --- LÓGICA DE PRODUÇÃO (A SER IMPLEMENTADA) ---
         println!("Executando verificação em modo REAL.");
-        
+
         // 1. Validar se os dados necessários (fullName, taxId, birthDate) foram recebidos.
         let full_name = request_body.fullName.ok_or(ApiError::MissingData)?;
         let tax_id = request_body.taxId.ok_or(ApiError::MissingData)?;
         let birth_date = request_body.birthDate.ok_or(ApiError::MissingData)?;
-        
+
         // 2. Chamar a função que encapsula a lógica da BigData Corp.
         // A implementação desta função fica como um TO-DO.
         match call_bigdatacorp_api(full_name, tax_id, birth_date).await {
@@ -176,19 +98,21 @@ async fn handle_kyc_verification(request_body: KycRequest) -> Result<(), ApiErro
             Err(ApiError::ValidationFailed("Simulação: Verificação de KYC falhou."))
         }
     }
+
 }
 
 // Função "stub" (espaço reservado) para a integração real.
 async fn call_bigdatacorp_api(name: String, cpf: String, dob: String) -> Result<(), ApiError> {
-    // TO-DO: Implementar a chamada HTTP real para a API da BigData Corp aqui.
-    // 1. Carregar a BIGDATACORP_API_KEY e BIGDATACORP_API_URL das variáveis de ambiente.
-    // 2. Montar o corpo da requisição conforme a documentação da BigData Corp.
-    // 3. Fazer a chamada com 'reqwest'.
-    // 4. Analisar a resposta e retornar Ok(()) se aprovado, ou Err(ApiError) se reprovado.
-    
+// TO-DO: Implementar a chamada HTTP real para a API da BigData Corp aqui.
+// 1. Carregar a BIGDATACORP_API_KEY e BIGDATACORP_API_URL das variáveis de ambiente.
+// 2. Montar o corpo da requisição conforme a documentação da BigData Corp.
+// 3. Fazer a chamada com 'reqwest'.
+// 4. Analisar a resposta e retornar Ok(()) se aprovado, ou Err(ApiError) se reprovado.
+
     // Por enquanto, apenas logamos e retornamos um erro de "não implementado".
     println!("CHAMADA REAL PARA BIGDATACORP AINDA NÃO IMPLEMENTADA.");
     unimplemented!("A integração com a BigData Corp será feita nesta função.");
+
 }
 Parte 2: Frontend (React)
 2.1. Gerenciamento de Estado Global

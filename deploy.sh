@@ -21,17 +21,12 @@ echo "➡️  Navegando para o diretório 'backend'..."
 # Garante que o script seja executado a partir da raiz do projeto
 cd "$(dirname "$0")/backend"
 
-# --- Passo 2: Build, Tag e Push da Imagem Docker ---
+# --- Passo 2: Build e Push usando Google Cloud Build ---
+# Não requer Docker instalado localmente
 IMAGE_TAG="southamerica-east1-docker.pkg.dev/$GCP_PROJECT_ID/mega-cripto-uai-repo/mega-cripto-uai-api:latest"
 
-echo "🛠️  Construindo a imagem Docker..."
-docker build -t mega-cripto-uai-api .
-
-echo "🏷️  Tagueando a imagem..."
-docker tag mega-cripto-uai-api "$IMAGE_TAG"
-
-echo "📤 Enviando a imagem para o Google Artifact Registry..."
-docker push "$IMAGE_TAG"
+echo "🛠️  Construindo e enviando a imagem via Cloud Build..."
+gcloud builds submit --tag "$IMAGE_TAG" .
 
 # --- Passo 3: Deploy no Cloud Run ---
 echo "☁️  Fazendo o deploy no Google Cloud Run..."
@@ -42,7 +37,8 @@ gcloud run deploy mega-cripto-uai-api \
   --allow-unauthenticated \
   --port=3000 \
   --set-env-vars="RUST_LOG=info" \
-  --quiet # Adicionado para evitar prompts interativos no deploy
+  --project="$GCP_PROJECT_ID" \
+  --quiet
 
 echo "✅ Deploy concluído com sucesso!"
 echo "URL da API estará disponível em breve no seu console do Google Cloud."

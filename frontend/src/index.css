@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
+@theme {
   /* Cores Primárias (Marca) */
   --color-bg-base: #1A103C;
   --color-bg-surface: #241842;
@@ -24,7 +24,9 @@
 
   --font-body: 'Inter', system-ui, sans-serif;
   --font-heading: 'Sora', system-ui, sans-serif;
+}
 
+:root {
   font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;

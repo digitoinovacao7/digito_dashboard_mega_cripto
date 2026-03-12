@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isVerified, isLoading } = useAuth();
+  const { isAuthenticated, isVerified, isLoading, isAdmin } = useAuth();
 
   if (isLoading) {
     return <div>Carregando...</div>;
@@ -13,7 +13,7 @@ const ProtectedRoute: React.FC = () => {
     return <Navigate to="/" replace />;
   }
 
-  if (!isVerified) {
+  if (!isVerified && !isAdmin) {
     return <Navigate to="/verificar-idade" replace />;
   }
 
