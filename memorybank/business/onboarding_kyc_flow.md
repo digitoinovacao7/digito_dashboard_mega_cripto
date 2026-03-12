@@ -118,18 +118,20 @@ Parte 2: Frontend (React)
 2.1. Gerenciamento de Estado Global
 Nenhuma mudança aqui.
 
-2.2. Implementação do Roteamento Condicional (ProtectedRoute)
-Nenhuma mudança aqui.
+### 2.2. Implementação do Roteamento Condicional (ProtectedRoute)
+A lógica do portão de segurança foi atualizada para permitir que administradores acessem o sistema sem a necessidade de verificação de KYC.
 
-2.3. Criação da Página de Verificação Simulada (/verificar-idade)
-Aqui, vamos adicionar uma pequena nota para deixar claro o que acontecerá no futuro.
+**Lógica de Proteção:**
+```tsx
+const { isAuthenticated, isVerified, isLoading, isAdmin } = useAuth();
 
-Interface:
-Título: "Verificação de Perfil (Modo de Teste)"
-Texto Explicativo: "Esta é uma tela para testes. Em produção, aqui haverá um formulário para validação de Nome, CPF e Data de Nascimento via BigData Corp."
-Botões:
-[Simular Aprovação de KYC]
-[Simular Rejeição de KYC]
-Lógica dos Botões:
-Aprovação: Chama POST /users/complete-profile com {"simulationType": "APPROVE"}.
-Rejeição: Chama POST /users/complete-profile com {"simulationType": "REJECT"}.
+if (!isVerified && !isAdmin) {
+  return <Navigate to="/verificar-idade" replace />;
+}
+```
+
+### 2.3. Criação da Página de Verificação Simulada (/verificar-idade)
+A página de verificação agora possui redirecionamento automático para administradores.
+
+**Redirecionamento Admin:**
+Se um administrador acessar esta página, ele é automaticamente redirecionado para o painel administrativo (`/admin-secret`), já que não precisa de KYC.
