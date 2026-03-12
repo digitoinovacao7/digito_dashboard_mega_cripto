@@ -26,7 +26,7 @@ cd "$(dirname "$0")/backend"
 IMAGE_TAG="southamerica-east1-docker.pkg.dev/$GCP_PROJECT_ID/mega-cripto-uai-repo/mega-cripto-uai-api:latest"
 
 echo "🛠️  Construindo e enviando a imagem via Cloud Build..."
-gcloud builds submit --tag "$IMAGE_TAG" .
+gcloud builds submit --tag "$IMAGE_TAG" --project="$GCP_PROJECT_ID" .
 
 # --- Passo 3: Deploy no Cloud Run ---
 echo "☁️  Fazendo o deploy no Google Cloud Run..."
